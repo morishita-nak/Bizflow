@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#0EA5E9"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
@@ -23,6 +23,8 @@ body{
   background:#EFF9FA;
   color:#1E293B;
   -webkit-font-smoothing:antialiased;
+  min-height:100dvh;
+  overflow-x:hidden;
 }
 
 /* ── DESIGN TOKENS ── */
@@ -47,22 +49,18 @@ body{
 
 /* ── LAYOUT ── */
 #app{
-  position:fixed;
-  inset:0;
+  width:100%;
   max-width:430px;
-  left:50%;
-  transform:translateX(-50%);
+  margin:0 auto;
+  min-height:100dvh;
   display:flex;
   flex-direction:column;
   background:var(--bg);
-  overflow:hidden;
+  position:relative;
 }
 .screen{
   flex:1;
-  overflow-y:auto;
-  -webkit-overflow-scrolling:touch;
-  overscroll-behavior-y:contain;
-  padding-bottom:16px;
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
 }
 
 /* ── HEADER WAVE ── */
@@ -98,8 +96,15 @@ body{
 
 /* ── BOTTOM NAV ── */
 .bottom-nav{
-  flex-shrink:0;
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
   width:100%;
+  max-width:430px;
+  margin:0 auto;
+  left:50%;
+  transform:translateX(-50%);
   height:calc(var(--nav-h) + env(safe-area-inset-bottom));
   padding-bottom:env(safe-area-inset-bottom);
   background:#fff;
@@ -343,8 +348,11 @@ body{
 /* ── RECEIPT ── */
 .receipt-upload{
   border:2px dashed var(--border);border-radius:14px;
-  padding:20px;text-align:center;cursor:pointer;
+  padding:20px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;cursor:pointer;width:100%;
   transition:border .15s,background .15s;
+  box-sizing:border-box;
 }
 .receipt-upload:hover{border-color:var(--sky);background:#F0FBFF}
 .receipt-preview{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--border)}
@@ -1704,10 +1712,10 @@ function openExpModal(){
     <div style="margin-bottom:14px">
       <label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px">領収書 <span style="color:var(--muted);font-weight:400">→ 管理者の Google Drive に保存</span></label>
       <div id="ep-receipt-area">
-        <label class="receipt-upload" for="ep-file">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:32px;height:32px;color:var(--muted);margin-bottom:6px"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z"/></svg>
+        <label class="receipt-upload" for="ep-file" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;width:100%">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:36px;height:36px;color:var(--muted);margin-bottom:8px;display:block"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z"/></svg>
           <div style="font-size:13px;color:var(--sub);font-weight:600">カメラ撮影 / ギャラリーから選択</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">管理者の Google Drive に自動保存</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">管理者の Google Drive に自動保存</div>
         </label>
         <input type="file" id="ep-file" accept="image/*" capture="environment" style="display:none" onchange="epHandleFile(this)">
       </div>
