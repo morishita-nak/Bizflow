@@ -17,13 +17,12 @@
 <style>
 /* ── RESET & BASE ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overscroll-behavior:none}
+html,body{overscroll-behavior-x:none}
 body{
   font-family:'Noto Sans JP','Inter',sans-serif;
   background:#EFF9FA;
   color:#1E293B;
   -webkit-font-smoothing:antialiased;
-  min-height:100dvh;
   overflow-x:hidden;
 }
 
@@ -52,15 +51,10 @@ body{
   width:100%;
   max-width:430px;
   margin:0 auto;
-  min-height:100dvh;
-  display:flex;
-  flex-direction:column;
   background:var(--bg);
-  position:relative;
 }
 .screen{
-  flex:1;
-  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 8px);
 }
 
 /* ── HEADER WAVE ── */
@@ -98,15 +92,12 @@ body{
 .bottom-nav{
   position:fixed;
   bottom:0;
-  left:0;
-  right:0;
-  width:100%;
-  max-width:430px;
-  margin:0 auto;
   left:50%;
   transform:translateX(-50%);
-  height:calc(var(--nav-h) + env(safe-area-inset-bottom));
-  padding-bottom:env(safe-area-inset-bottom);
+  width:100%;
+  max-width:430px;
+  height:var(--nav-h);
+  padding-bottom:0;
   background:#fff;
   border-top:1px solid var(--border);
   display:flex;
