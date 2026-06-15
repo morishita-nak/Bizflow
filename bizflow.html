@@ -428,7 +428,7 @@ const COLORS=[
 const getC=id=>COLORS.find(c=>c.id===id)||COLORS[0];
 
 // ★ GAS WebアプリのURL（デプロイ後に書き換え）
-const GAS_URL = "★ここにGASデプロイURLを貼り付け★";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbydzgIQT9bC-AQuN0TzuoU39TKl5bvusPInmn6aUtknrhKOSVsgwpWTaKRz9GpuGRc6Tw/exec";
 
 // マスターデータ（JSONファイルから読み込み）
 let USERS=[], clients=[], projects=[], STORES=[];
@@ -994,6 +994,14 @@ function renderProjects(){
   </div>`;
 }
 
+function changeProjectStatus(projId, newStatus){
+  projects = projects.map(p => p.id===projId ? {...p, status:newStatus} : p);
+  if(detailProject?.id===projId) detailProject = {...detailProject, status:newStatus};
+  gasPost("updateProject", {id:projId, status:newStatus});
+  render();
+  showToast(`ステータスを「${newStatus}」に変更しました`);
+}
+
 function openProjectDetail(id){
   detailProject=projects.find(p=>p.id===id);
   render();
@@ -1062,6 +1070,10 @@ function renderProjectDetail(){
 }
 
 // ── SHIFTS ────────────────────────────────────────────────────
+// 複数日選択用
+let calSelectedDates = new Set(); // 登録モード中に選択した日付文字列
+let calRegMode = false; // 登録モードON/OFF
+
 function renderShifts(){
   const emps=USERS.filter(u=>u.role==="Employee");
   const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
@@ -1071,7 +1083,7 @@ function renderShifts(){
   for(let d=1;d<=daysInMonth;d++) cells.push(d);
 
   let detailHTML="";
-  if(calSelDate!==null){
+  if(!calRegMode && calSelDate!==null){
     const ds=ymd(calYear,calMonth,calSelDate);
     const dayShifts=shifts.filter(s=>s.date===ds);
     detailHTML=`<div style="padding:0 16px;margin-top:8px">
@@ -1094,14 +1106,30 @@ function renderShifts(){
     </div>`;
   }
 
+  // 登録モード中のバナー
+  const regBanner = calRegMode ? `
+    <div style="padding:0 16px;margin-bottom:8px">
+      <div style="background:var(--sky);border-radius:14px;padding:12px 16px;color:#fff;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:12px;font-weight:800;opacity:.8;margin-bottom:2px">📅 日付を選択中</div>
+          <div style="font-size:15px;font-weight:900">${calSelectedDates.size} 日選択済み</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="calRegMode=false;calSelectedDates=new Set();render()" style="background:rgba(255,255,255,.2);border:none;border-radius:10px;padding:8px 12px;color:#fff;font-size:12px;font-weight:700;cursor:pointer">キャンセル</button>
+          <button onclick="openShiftModalWithDates()" ${calSelectedDates.size===0?"disabled":""} style="background:#fff;border:none;border-radius:10px;padding:8px 14px;color:var(--sky);font-size:12px;font-weight:800;cursor:pointer;opacity:${calSelectedDates.size===0?".4":"1"}">次へ →</button>
+        </div>
+      </div>
+    </div>` : "";
+
   return`
   <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div><div class="eyebrow">シフト管理</div><h1 style="font-size:20px">${calYear}年 ${calMonth+1}月</h1></div>
-      <button class="fab" onclick="openShiftModal()">${ICO.plus}</button>
+      <button class="fab" onclick="startCalRegMode()" title="日付を選んで登録">${ICO.plus}</button>
     </div>
   </div>
   <div style="padding:0 16px;margin-top:-30px">
+    ${regBanner}
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <button onclick="calPrev()" style="background:var(--sky-l);border:none;border-radius:10px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sky)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
@@ -1123,7 +1151,8 @@ function renderShifts(){
         const ds=ymd(calYear,calMonth,d);
         const dow=new Date(calYear,calMonth,d).getDay();
         const isToday=ds===TODAY;
-        const isSel=calSelDate===d;
+        const isSel=!calRegMode && calSelDate===d;
+        const isRegSel=calRegMode && calSelectedDates.has(ds);
         const dayShifts=shifts.filter(s=>s.date===ds);
         const byStaff={};
         dayShifts.forEach(s=>{if(!byStaff[s.uid])byStaff[s.uid]=s.type;});
@@ -1132,12 +1161,16 @@ function renderShifts(){
           const c=getC(u?.color||"sky");
           return`<div class="cal-bar" style="background:${type==="公休"?"#CBD5E1":c.bar}"></div>`;
         }).join("");
-        return`<div class="cal-day-cell${isSel?" selected":""}" onclick="calSelect(${d})">
+        return`<div class="cal-day-cell${isSel?" selected":""}${isRegSel?" selected":""}"
+          style="${isRegSel?"background:#E0F2FE;outline:2px solid var(--sky);outline-offset:-2px;z-index:1":""}"
+          onclick="${calRegMode?`toggleRegDate('${ds}')`:`calSelect(${d})`}">
           <div class="cal-day-num${isToday?" today":dow===0?" sun":dow===6?" sat":""}">${d}</div>
           <div class="cal-bars">${bars}${Object.keys(byStaff).length>3?`<div style="font-size:8px;color:var(--muted);text-align:center">+${Object.keys(byStaff).length-3}</div>`:""}</div>
+          ${isRegSel?`<div style="font-size:8px;color:var(--sky);font-weight:800;line-height:1">✓</div>`:""}
         </div>`;
       }).join("")}
     </div>
+    ${!calRegMode?`<div style="margin-top:10px;text-align:center;font-size:12px;color:var(--muted)">＋ボタン → 日付をタップして登録</div>`:""}
   </div>
   ${detailHTML}`;
 }
@@ -1146,7 +1179,71 @@ function mountShiftCalendar(){}
 function calPrev(){if(calMonth===0){calYear--;calMonth=11;}else calMonth--;calSelDate=null;render();}
 function calNext(){if(calMonth===11){calYear++;calMonth=0;}else calMonth++;calSelDate=null;render();}
 function calSelect(d){calSelDate=calSelDate===d?null:d;render();}
-function deleteShift(id){shifts=shifts.filter(s=>s.id!==id);render();showToast("シフトを削除しました");}
+function deleteShift(id){shifts=shifts.filter(s=>s.id!==id);gasPost("deleteShift",{id});showToast("シフトを削除しました");render();}
+
+// 登録モード開始
+function startCalRegMode(){
+  calRegMode=true;
+  calSelectedDates=new Set();
+  calSelDate=null;
+  render();
+}
+
+// 日付トグル（登録モード中）
+function toggleRegDate(ds){
+  if(calSelectedDates.has(ds)) calSelectedDates.delete(ds);
+  else calSelectedDates.add(ds);
+  render();
+}
+
+// 選択した日付でモーダルを開く
+function openShiftModalWithDates(){
+  if(calSelectedDates.size===0) return;
+  const sortedDates=[...calSelectedDates].sort();
+  const emps=USERS.filter(u=>u.role==="Employee");
+  const activeProjs=projects.filter(p=>p.status==="稼働中");
+
+  openModal(`
+  <div class="modal-header"><h2>シフト登録</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
+  <div class="modal-body">
+    <!-- 選択日付プレビュー -->
+    <div style="background:var(--sky-l);border-radius:12px;padding:12px 14px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--sky-d);margin-bottom:6px">選択した日付 (${sortedDates.length}日)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">
+        ${sortedDates.map(ds=>{
+          const d=new Date(ds);
+          const dow=WDAYS[d.getDay()];
+          return`<span style="background:#fff;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;color:var(--sky)">${ds.slice(5).replace('-','/')}(${dow})</span>`;
+        }).join("")}
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px">種別</label>
+      <div class="toggle-row">
+        <button id="sf-t-work" class="active" onclick="sfSetType('勤務',this)">勤務</button>
+        <button id="sf-t-hol" onclick="sfSetType('公休',this)">公休</button>
+      </div>
+    </div>
+
+    <div class="field"><label>スタッフ</label>
+      <select id="sf-uid"><option value="">選択してください</option>${emps.map(u=>`<option value="${u.email}">${u.name}</option>`).join("")}</select>
+    </div>
+
+    <div id="sf-proj-wrap">
+      <div class="field"><label>案件</label>
+        <select id="sf-proj" onchange="sfProjChange()"><option value="">選択してください</option>${activeProjs.map(p=>`<option value="${p.id}">${p.name}</option>`).join("")}</select>
+      </div>
+      <div class="field"><label>店舗</label><select id="sf-store"><option value="">案件を先に選択</option></select></div>
+    </div>
+
+    <div style="background:var(--sky-l);border-radius:12px;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <span style="font-size:12px;color:var(--sky-d);font-weight:600">登録予定</span>
+      <span style="font-size:20px;font-weight:900;color:var(--sky)">${sortedDates.length} 日</span>
+    </div>
+    <button class="btn btn-primary btn-full" id="sf-save" onclick="saveDatesShift()">登録する</button>
+  </div>`);
+}
 
 function openShiftModal(){
   const emps=USERS.filter(u=>u.role==="Employee");
@@ -1244,6 +1341,33 @@ function saveShift(){
   // GASに保存
   newShifts.forEach(s => gasPost("addShift", s));
   closeModal();render();showToast(`${newShifts.length} 件登録しました`);
+}
+
+// カレンダー複数選択からの保存
+function saveDatesShift(){
+  const uid = document.getElementById("sf-uid")?.value;
+  const projId = sfType==="公休" ? "" : (document.getElementById("sf-proj")?.value||"");
+  const storeId = sfType==="公休" ? "" : (document.getElementById("sf-store")?.value||"");
+  if(!uid){ showToast("スタッフを選択してください"); return; }
+  if(sfType==="勤務" && (!projId||!storeId)){ showToast("案件と店舗を選択してください"); return; }
+
+  const sortedDates=[...calSelectedDates].sort();
+  const newShifts=[];
+  sortedDates.forEach(ds=>{
+    const dup=shifts.some(s=>s.date===ds&&s.uid===uid&&s.type===sfType);
+    if(!dup) newShifts.push({id:`SH${Date.now()}_${ds}`,date:ds,uid,projId,storeId,type:sfType});
+  });
+
+  shifts=[...shifts,...newShifts];
+  newShifts.forEach(s=>gasPost("addShift",s));
+
+  // 登録モード終了
+  calRegMode=false;
+  calSelectedDates=new Set();
+  sfType="勤務";
+
+  closeModal();render();
+  showToast(`${newShifts.length} 件のシフトを登録しました`);
 }
 
 // ── REPORTS ───────────────────────────────────────────────────
