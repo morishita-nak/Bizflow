@@ -41,7 +41,7 @@ body{
   --muted:#94A3B8;
   --r:    16px;
   --r-lg: 22px;
-  --nav-h:68px;
+  --nav-h:60px;
   --header-grad: linear-gradient(135deg,#0EA5E9 0%,#06B6D4 45%,#10B981 100%);
 }
 
@@ -59,14 +59,15 @@ body{
 .screen{
   flex:1;
   overflow-y:auto;
-  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 8px);
   -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
 }
 
 /* ── HEADER WAVE ── */
 .page-header{
   background:var(--header-grad);
-  padding:calc(env(safe-area-inset-top) + 18px) 20px 52px;
+  padding:calc(env(safe-area-inset-top) + 18px) 20px 20px;
   position:relative;
   overflow:hidden;
 }
@@ -74,7 +75,7 @@ body{
   content:'';
   position:absolute;
   bottom:-2px;left:0;right:0;
-  height:40px;
+  height:20px;
   background:var(--bg);
   clip-path:ellipse(55% 100% at 50% 100%);
 }
@@ -109,9 +110,10 @@ body{
 }
 .nav-btn{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;border:none;background:none;cursor:pointer;
+  gap:2px;border:none;background:none;cursor:pointer;
   color:var(--muted);transition:color .15s;
-  padding-bottom:2px;
+  padding-bottom:env(safe-area-inset-bottom);
+  padding-top:6px;
 }
 .nav-btn.active{color:var(--sky)}
 .nav-btn svg{width:22px;height:22px;stroke-width:1.8}
@@ -510,6 +512,13 @@ const EXP_CATS=["交通費","接待費","備品・消耗品","通信費","研修
 const TODAY="2026-06-14";
 const WDAYS=["日","月","火","水","木","金","土"];
 const fmt=n=>(+n||0).toLocaleString("ja-JP");
+// ISO日付 → YYYY-MM-DD に正規化
+const fmtDate=s=>{
+  if(!s) return "";
+  const d=new Date(s);
+  if(isNaN(d)) return s; // パースできなければそのまま
+  return d.toLocaleDateString("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit"}).replace(/\//g,"-");
+};
 const ymd=(y,m,d)=>`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 const statusBadge=s=>{
   const m={稼働中:"badge-green",商談中:"badge-amber",契約済:"badge-sky",終了:"badge-gray",承認:"badge-green",申請中:"badge-amber",差戻し:"badge-red"};
@@ -663,7 +672,17 @@ async function checkEmail(){
   loginEmail = email;
   document.getElementById("login-msg").textContent = "確認中...";
 
-  // GAS未設定の場合はモックで確認
+  document.getElementById("login-msg").textContent = "確認中...";
+
+  // GAS設定済みなら最新のUsersを取得してから判定（二重登録防止）
+  if(!GAS_URL.startsWith("★")){
+    try{
+      const res = await fetch(`${GAS_URL}?action=getUsers`);
+      const freshUsers = await res.json();
+      if(Array.isArray(freshUsers)) USERS = freshUsers;
+    }catch(e){ console.warn("users fetch error:", e); }
+  }
+
   const user = USERS.find(u => u.email === email);
   if (user) {
     // 既存ユーザー → ログイン
@@ -674,7 +693,7 @@ async function checkEmail(){
   } else {
     // 未登録 → 新規登録へ
     loginStep = "register";
-    registerForm = { name:"", color:"sky", empId:"EMP" + String(Date.now()).slice(-4), phone:"" };
+    registerForm = { name:"", color:"sky", empId:"", phone:"" };
     renderLogin();
   }
 }
@@ -783,16 +802,28 @@ function renderRegStep3(){
 }
 
 async function submitRegister(){
+  // 二重登録防止：念のため最新データを取得してチェック
+  const existing = USERS.find(u => u.email === loginEmail);
+  if(existing){
+    // すでに登録済み（GASから読み込み済み）→ そのままログイン
+    currentUser = existing;
+    currentTab  = existing.role==="Admin" ? "dashboard" : "home";
+    loginStep="email"; regStep=1; loginEmail="";
+    render();
+    showToast("アカウントが見つかりました。ログインしました！");
+    return;
+  }
+
   const newUser = {
     email:  loginEmail,
     name:   registerForm.name,
     role:   "Employee",
-    empId:  registerForm.empId,
+    empId:  "EMP" + String(Date.now()).slice(-4),
     color:  registerForm.color,
     phone:  registerForm.phone || "",
   };
 
-  // GASに保存
+  // GASに保存（1回だけ）
   await gasPost("addUser", newUser);
 
   // ローカルにも追加
@@ -872,7 +903,7 @@ function renderDashboard(){
     <h1>${currentUser.name} さん</h1>
     <div class="sub">${TODAY}</div>
   </div>
-  <div style="padding:0 16px 24px;margin-top:-30px">
+  <div style="padding:0 16px 16px;margin-top:8px">
     ${pending.length?`<div class="alert-banner alert-amber" style="margin-top:0;margin-bottom:12px">${ICO.bell}<span style="font-size:13px;font-weight:600">経費承認待ちが <strong>${pending.length}</strong> 件あります</span></div>`:""}
     <div class="stat-grid" style="margin-bottom:10px">
       <div class="stat-card"><div class="label">稼働案件</div><div class="value">${active.length}</div><div class="unit">件</div></div>
@@ -915,7 +946,7 @@ function renderHome(){
     <h1>${u.name} さん</h1>
     <div class="sub">${TODAY}</div>
   </div>
-  <div style="padding:0 16px 24px;margin-top:-30px">
+  <div style="padding:0 16px 16px;margin-top:8px">
     <div class="card" style="margin-bottom:10px">
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;letter-spacing:.06em">本日のシフト</div>
       ${todayS?`<div style="font-size:15px;font-weight:800;color:var(--txt)">${proj?.name}</div>
@@ -963,7 +994,7 @@ function renderProjects(){
       </div>`:""}
     </div>
   </div>
-  <div style="padding:0 16px 24px;margin-top:-30px">
+  <div style="padding:0 16px 16px;margin-top:8px">
     ${isAdmin?`<div class="tab-toggle"><button class="${projTabState==="案件"?"active":""}" onclick="projTabState='案件';render()">案件</button><button class="${projTabState==="クライアント"?"active":""}" onclick="projTabState='クライアント';render()">クライアント</button></div>`:""}
     ${projTabState==="クライアント"&&isAdmin?`
       ${cls.map(c=>`<div class="card client-card" style="margin-bottom:8px">
@@ -987,7 +1018,7 @@ function renderProjects(){
           </div>
           ${statusBadge(p.status)}
         </div>
-        <div style="font-size:12px;color:var(--muted)">${p.start} 〜 ${p.end} · ${sts.length} 店舗</div>
+        <div style="font-size:12px;color:var(--muted)">${fmtDate(p.start)} 〜 ${fmtDate(p.end)} · ${sts.length} 店舗</div>
       </div>`;
     }).join("")}
     ${prjs.length===0?`<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:14px">該当する案件がありません</div>`:""}`}
@@ -1029,7 +1060,7 @@ function renderProjectDetail(){
       <div class="info-table" style="margin:0">
         <div class="info-row"><span class="key">取引先</span><span class="val">${cl?.company}</span></div>
         <div class="info-row"><span class="key">担当者</span><span class="val">${cl?.contact}</span></div>
-        <div class="info-row"><span class="key">期間</span><span class="val">${p.start} 〜 ${p.end}</span></div>
+        <div class="info-row"><span class="key">期間</span><span class="val">${fmtDate(p.start)} 〜 ${fmtDate(p.end)}</span></div>
         ${isAdmin?`<div class="info-row"><span class="key">単価</span><span class="val">¥${fmt(p.price)}</span></div>`:""}
       </div>
     </div>
@@ -1108,7 +1139,7 @@ function renderShifts(){
 
   // 登録モード中のバナー
   const regBanner = calRegMode ? `
-    <div style="padding:0 16px;margin-bottom:8px">
+    <div style="padding:0 16px;margin-top:8px;margin-bottom:8px">
       <div style="background:var(--sky);border-radius:14px;padding:12px 16px;color:#fff;display:flex;align-items:center;justify-content:space-between">
         <div>
           <div style="font-size:12px;font-weight:800;opacity:.8;margin-bottom:2px">📅 日付を選択中</div>
@@ -1128,8 +1159,8 @@ function renderShifts(){
       <button class="fab" onclick="startCalRegMode()" title="日付を選んで登録">${ICO.plus}</button>
     </div>
   </div>
-  <div style="padding:0 16px;margin-top:-30px">
-    ${regBanner}
+  ${regBanner}
+  <div style="padding:0 16px;margin-top:8px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <button onclick="calPrev()" style="background:var(--sky-l);border:none;border-radius:10px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sky)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
@@ -1379,10 +1410,10 @@ function renderReports(){
   <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div><div class="eyebrow">日報</div><h1 style="font-size:20px">${myR.length} 件</h1></div>
-      ${!isAdmin?`<button class="fab" onclick="openReportModal()">${ICO.plus}</button>`:""}
+      <button class="fab" onclick="openReportModal()">${ICO.plus}</button>
     </div>
   </div>
-  <div style="padding:0 16px 24px;margin-top:-30px">
+  <div style="padding:0 16px 16px;margin-top:8px">
     ${myR.map(r=>{
       const u=USERS.find(u=>u.email===r.uid);
       const p=projects.find(p=>p.id===r.projId);
@@ -1451,6 +1482,7 @@ function openReportDetail(id){
 
 let reportOthers=[];
 function openReportModal(){
+  const isAdmin=currentUser.role==="Admin";
   const todayS=shifts.find(s=>s.uid===currentUser.email&&s.date===TODAY&&s.type==="勤務");
   const proj=todayS?projects.find(p=>p.id===todayS.projId):null;
   const store=todayS?STORES.find(s=>s.id===todayS.storeId):null;
@@ -1458,7 +1490,28 @@ function openReportModal(){
   openModal(`
   <div class="modal-header"><h2>日報提出</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
   <div class="modal-body">
-    ${todayS?`<div style="background:var(--sky-l);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--sky-d)">
+    ${isAdmin?`
+    <div style="background:var(--sky-l);border-radius:12px;padding:10px 14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--sky-d);margin-bottom:8px">管理者入力モード</div>
+      <div class="field" style="margin-bottom:8px"><label>スタッフ</label>
+        <select id="rp-staff" style="width:100%;border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;font-size:14px;font-family:inherit;background:#FAFEFF;outline:none">
+          <option value="${currentUser.email}">${currentUser.name}（自分）</option>
+          ${USERS.filter(u=>u.role==="Employee").map(u=>`<option value="${u.email}">${u.name}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:8px"><label>案件</label>
+        <select id="rp-proj-admin" onchange="rpAdminProjChange()" style="width:100%;border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;font-size:14px;font-family:inherit;background:#FAFEFF;outline:none">
+          <option value="">選択してください</option>
+          ${projects.filter(p=>p.status==="稼働中").map(p=>`<option value="${p.id}">${p.name}</option>`).join("")}
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0"><label>店舗</label>
+        <select id="rp-store-admin" style="width:100%;border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;font-size:14px;font-family:inherit;background:#FAFEFF;outline:none">
+          <option value="">案件を先に選択</option>
+        </select>
+      </div>
+    </div>`
+    :todayS?`<div style="background:var(--sky-l);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--sky-d)">
       <strong>本日のシフト:</strong> ${proj?.name} / ${store?.name}</div>`
     :`<div class="alert-banner alert-amber" style="margin-bottom:14px">${ICO.bell}<span style="font-size:12px">本日のシフトが見つかりません</span></div>`}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
@@ -1495,12 +1548,22 @@ function addOtherItem(){
     <button onclick="reportOthers[${i}]=null;document.getElementById('ro-${i}').remove()" style="background:none;border:none;cursor:pointer;color:#CBD5E1">${ICO.x}</button>`;
   wrap.appendChild(div);
 }
+function rpAdminProjChange(){
+  const pid=document.getElementById("rp-proj-admin")?.value;
+  const sts=STORES.filter(s=>s.projId===pid);
+  const sel=document.getElementById("rp-store-admin");
+  if(sel) sel.innerHTML=`<option value="">選択してください</option>${sts.map(s=>`<option value="${s.id}">${s.name}</option>`).join("")}`;
+}
 function saveReport(projId,storeId){
   const inT=document.getElementById("rp-in").value;
   const outT=document.getElementById("rp-out").value;
   if(!inT||!outT){showToast("出勤・退勤時刻を入力してください");return;}
+  const isAdminR=currentUser.role==="Admin";
+  const uid  =isAdminR?(document.getElementById("rp-staff")?.value||currentUser.email):currentUser.email;
+  const pid  =isAdminR?(document.getElementById("rp-proj-admin")?.value||projId):projId;
+  const sid  =isAdminR?(document.getElementById("rp-store-admin")?.value||storeId):storeId;
   const newR={
-    id:`R${Date.now()}`,date:TODAY,uid:currentUser.email,projId,storeId,
+    id:`R${Date.now()}`,date:TODAY,uid,projId:pid,storeId:sid,
     in:inT,out:outT,
     new_:+document.getElementById("rp-new").value,
     mnp: +document.getElementById("rp-mnp").value,
@@ -1533,10 +1596,10 @@ function renderExpenses(){
   <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div><div class="eyebrow">経費</div><h1 style="font-size:20px">精算管理</h1></div>
-      ${!isAdmin?`<button class="fab" onclick="openExpModal()">${ICO.plus}</button>`:""}
+      <button class="fab" onclick="openExpModal()">${ICO.plus}</button>
     </div>
   </div>
-  <div style="padding:0 16px 24px;margin-top:-30px">
+  <div style="padding:0 16px 16px;margin-top:8px">
     <div class="pill-row" style="margin-bottom:10px">
       ${filters.map(f=>`<button class="pill${expFilter===f?" active":""}" onclick="expFilter='${f}';render()">
         ${f}${f==="申請中"&&pendingCnt>0?`<span style="margin-left:4px;background:#F59E0B;color:#fff;font-size:10px;border-radius:100px;padding:1px 5px">${pendingCnt}</span>`:""}
@@ -1613,10 +1676,16 @@ let expReceiptData=null;
 let epIsOther=false;
 function openExpModal(){
   expReceiptData=null; epIsOther=false;
+  const isAdminExp=currentUser.role==="Admin";
   const activeProjs=projects.filter(p=>p.status==="稼働中");
   openModal(`
   <div class="modal-header"><h2>経費申請</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
   <div class="modal-body">
+    ${isAdminExp?`<div class="field"><label>申請スタッフ</label>
+      <select id="ep-staff" style="width:100%;border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;font-size:14px;font-family:inherit;background:#FAFEFF;outline:none">
+        <option value="${currentUser.email}">${currentUser.name}（自分）</option>
+        ${USERS.filter(u=>u.role==="Employee").map(u=>`<option value="${u.email}">${u.name}</option>`).join("")}
+      </select></div>`:""}
     <div class="field"><label>日付</label><input type="date" id="ep-date" value="${TODAY}"></div>
     <div style="margin-bottom:14px">
       <label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px">紐付け先</label>
@@ -1678,8 +1747,9 @@ function saveExp(){
   const amt=document.getElementById("ep-amt")?.value;
   const note=document.getElementById("ep-note")?.value;
   if((!epIsOther&&!projId)||!cat||!amt||!note){showToast("必須項目を入力してください");return;}
+  const expUid=document.getElementById("ep-staff")?.value||currentUser.email;
   expenses=[{
-    id:`E${Date.now()}`,uid:currentUser.email,
+    id:`E${Date.now()}`,uid:expUid,
     date:document.getElementById("ep-date").value,
     projId:projId||null,cat,amt:+amt,note,status:"申請中",
     receiptURL:expReceiptData?.url||null,
