@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#0EA5E9"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="BIZFLOW"/>
+<title>BIZFLOW</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+JP:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+
+<!-- PWA Manifest inline -->
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22BIZFLOW%22%2C%22short_name%22%3A%22BIZFLOW%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23F0FAFA%22%2C%22theme_color%22%3A%22%230EA5E9%22%7D"/>
+
+<style>
+/* ── RESET & BASE ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+body{
+  font-family:'Noto Sans JP','Inter',sans-serif;
+  background:#EFF9FA;
+  color:#1E293B;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── DESIGN TOKENS ── */
+:root{
+  --sky:  #0EA5E9;
+  --sky-d:#0284C7;
+  --sky-l:#E0F2FE;
+  --teal: #14B8A6;
+  --em:   #10B981;
+  --em-l: #D1FAE5;
+  --bg:   #EFF9FA;
+  --card: #FFFFFF;
+  --border:#E2EFF5;
+  --txt:  #1E293B;
+  --sub:  #64748B;
+  --muted:#94A3B8;
+  --r:    16px;
+  --r-lg: 22px;
+  --nav-h:68px;
+  --header-grad: linear-gradient(135deg,#0EA5E9 0%,#06B6D4 45%,#10B981 100%);
+}
+
+/* ── LAYOUT ── */
+#app{
+  max-width:430px;
+  margin:0 auto;
+  min-height:100vh;
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+  background:var(--bg);
+}
+.screen{
+  flex:1;
+  overflow-y:auto;
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling:touch;
+}
+
+/* ── HEADER WAVE ── */
+.page-header{
+  background:var(--header-grad);
+  padding:calc(env(safe-area-inset-top) + 18px) 20px 52px;
+  position:relative;
+  overflow:hidden;
+}
+.page-header::after{
+  content:'';
+  position:absolute;
+  bottom:-2px;left:0;right:0;
+  height:40px;
+  background:var(--bg);
+  clip-path:ellipse(55% 100% at 50% 100%);
+}
+.page-header .eyebrow{font-size:11px;color:rgba(255,255,255,.7);font-weight:600;letter-spacing:.08em;margin-bottom:4px}
+.page-header h1{font-size:22px;font-weight:800;color:#fff;line-height:1.2}
+.page-header .sub{font-size:12px;color:rgba(255,255,255,.6);margin-top:2px}
+.header-deco{
+  position:absolute;top:-20px;right:-20px;
+  width:120px;height:120px;
+  background:rgba(255,255,255,.08);
+  border-radius:50%;
+}
+.header-deco2{
+  position:absolute;top:20px;right:20px;
+  width:60px;height:60px;
+  background:rgba(255,255,255,.06);
+  border-radius:50%;
+}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{
+  position:fixed;
+  bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;
+  height:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  padding-bottom:env(safe-area-inset-bottom);
+  background:#fff;
+  border-top:1px solid var(--border);
+  display:flex;
+  z-index:100;
+  box-shadow:0 -4px 24px rgba(14,165,233,.07);
+}
+.nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;border:none;background:none;cursor:pointer;
+  color:var(--muted);transition:color .15s;
+  padding-bottom:2px;
+}
+.nav-btn.active{color:var(--sky)}
+.nav-btn svg{width:22px;height:22px;stroke-width:1.8}
+.nav-btn span{font-size:10px;font-weight:700;letter-spacing:.02em}
+.nav-btn.active .nav-icon-wrap{
+  background:var(--sky-l);
+  border-radius:12px;
+  padding:4px 12px 3px;
+}
+
+/* ── CARDS ── */
+.card{
+  background:var(--card);
+  border-radius:var(--r-lg);
+  border:1px solid var(--border);
+  padding:16px;
+  box-shadow:0 2px 12px rgba(14,165,233,.05);
+}
+.card.clickable{cursor:pointer;transition:transform .1s,box-shadow .1s}
+.card.clickable:active{transform:scale(.985);box-shadow:0 1px 6px rgba(14,165,233,.08)}
+
+/* ── STAT GRID ── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:14px;
+  box-shadow:0 2px 8px rgba(14,165,233,.05);
+}
+.stat-card .label{font-size:11px;color:var(--sub);font-weight:600;margin-bottom:4px}
+.stat-card .value{font-size:26px;font-weight:800;line-height:1;color:var(--sky)}
+.stat-card .unit{font-size:11px;color:var(--muted);margin-top:2px}
+.stat-card.green .value{color:var(--em)}
+.stat-card.teal  .value{color:var(--teal)}
+.stat-card.amber .value{color:#F59E0B}
+.stat-card.rose  .value{color:#F43F5E}
+.stat-card.violet .value{color:#8B5CF6}
+.stat-card.pink  .value{color:#EC4899}
+
+/* ── SECTION ── */
+.section-label{
+  font-size:11px;font-weight:700;
+  color:var(--muted);
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  margin:20px 0 10px;
+}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px}
+.badge-green {background:#D1FAE5;color:#065F46}
+.badge-sky   {background:#E0F2FE;color:#0369A1}
+.badge-amber {background:#FEF3C7;color:#92400E}
+.badge-gray  {background:#F1F5F9;color:#64748B}
+.badge-red   {background:#FEE2E2;color:#991B1B}
+.badge-purple{background:#EDE9FE;color:#5B21B6}
+
+/* ── FORMS ── */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:5px;letter-spacing:.04em}
+.field input,.field select,.field textarea{
+  width:100%;border:1.5px solid var(--border);border-radius:12px;
+  padding:12px 14px;font-size:14px;font-family:inherit;
+  background:#FAFEFF;color:var(--txt);
+  outline:none;transition:border .15s,box-shadow .15s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{
+  border-color:var(--sky);
+  box-shadow:0 0 0 3px rgba(14,165,233,.12);
+}
+.field textarea{resize:none}
+.field input[type=number]{text-align:center}
+.num-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.num-cell label{display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:4px;text-align:center}
+.num-cell input{width:100%;border:1.5px solid var(--border);border-radius:12px;padding:10px 4px;text-align:center;font-size:16px;font-weight:700;color:var(--sky);background:#FAFEFF;outline:none}
+.num-cell input:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(14,165,233,.12)}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:11px 18px;border-radius:12px;
+  font-size:13px;font-weight:700;font-family:inherit;
+  border:none;cursor:pointer;transition:all .15s;
+}
+.btn-primary{background:var(--sky);color:#fff}
+.btn-primary:hover{background:var(--sky-d)}
+.btn-primary:disabled{opacity:.35;pointer-events:none}
+.btn-success{background:var(--em);color:#fff}
+.btn-ghost{background:#F1F9FF;color:var(--sky)}
+.btn-danger{background:#FEE2E2;color:#DC2626}
+.btn-gray{background:#F1F5F9;color:var(--sub)}
+.btn-full{width:100%;justify-content:center;padding:14px}
+.btn svg{width:16px;height:16px;flex-shrink:0}
+.toggle-row{display:flex;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.toggle-row button{flex:1;padding:11px;font-size:12px;font-weight:700;font-family:inherit;border:none;background:#fff;color:var(--sub);cursor:pointer;transition:all .15s}
+.toggle-row button.active{background:var(--sky);color:#fff}
+.toggle-row button.active-green{background:var(--em);color:#fff}
+
+/* ── FAB ── */
+.fab{
+  width:40px;height:40px;border-radius:12px;
+  background:var(--sky);color:#fff;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 14px rgba(14,165,233,.35);
+  transition:transform .1s;flex-shrink:0;
+}
+.fab:active{transform:scale(.92)}
+.fab svg{width:18px;height:18px;stroke-width:2.2}
+
+/* ── MODAL ── */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(15,30,50,.45);
+  z-index:200;display:flex;flex-direction:column;justify-content:flex-end;
+  animation:fadeIn .15s;
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-sheet{
+  background:#fff;
+  border-radius:24px 24px 0 0;
+  max-height:92dvh;
+  overflow-y:auto;
+  animation:slideUp .2s cubic-bezier(.32,0,.67,0);
+}
+@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 0}
+.modal-header{
+  position:sticky;top:0;background:#fff;
+  padding:14px 18px 12px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  z-index:1;
+}
+.modal-header h2{font-size:15px;font-weight:800;color:var(--txt)}
+.modal-close{width:30px;height:30px;border-radius:50%;border:none;background:#F1F5F9;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sub)}
+.modal-close svg{width:14px;height:14px;stroke-width:2.5}
+.modal-body{padding:16px 18px 24px}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:calc(var(--nav-h) + 12px + env(safe-area-inset-bottom));
+  left:50%;transform:translateX(-50%);
+  background:#1E293B;color:#fff;
+  font-size:13px;font-weight:600;
+  padding:10px 20px;border-radius:100px;
+  box-shadow:0 4px 20px rgba(0,0,0,.2);
+  display:flex;align-items:center;gap:8px;
+  white-space:nowrap;z-index:300;
+  animation:toastIn .2s;
+}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.toast svg{width:14px;height:14px;color:#10B981;stroke-width:2.5;flex-shrink:0}
+
+/* ── CALENDAR ── */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border-radius:16px;overflow:hidden}
+.cal-day-cell{
+  background:#fff;
+  min-height:50px;
+  display:flex;flex-direction:column;align-items:center;
+  padding:6px 2px 4px;
+  cursor:pointer;transition:background .1s;
+}
+.cal-day-cell:hover{background:#F0FAFA}
+.cal-day-cell.selected{outline:2px solid var(--sky);outline-offset:-2px;z-index:1}
+.cal-day-num{
+  font-size:12px;font-weight:700;
+  width:22px;height:22px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:50%;
+  margin-bottom:3px;
+  color:var(--txt);
+}
+.cal-day-num.today{background:var(--sky);color:#fff}
+.cal-day-num.sun{color:#F43F5E}
+.cal-day-num.sat{color:#0EA5E9}
+.cal-bars{display:flex;flex-direction:column;gap:2px;width:100%;padding:0 3px}
+.cal-bar{height:3px;border-radius:2px;width:100%}
+
+/* ── STAFF AVATAR ── */
+.avatar{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;flex-shrink:0;
+}
+
+/* ── LOGIN ── */
+.login-wrap{
+  min-height:100dvh;
+  background:var(--header-grad);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:32px 24px;
+}
+.login-logo{font-size:42px;font-weight:900;color:#fff;letter-spacing:-.02em;margin-bottom:4px}
+.login-tagline{font-size:13px;color:rgba(255,255,255,.7);margin-bottom:36px;font-weight:500}
+.login-card{background:#fff;border-radius:24px;padding:24px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.login-user-btn{
+  width:100%;display:flex;align-items:center;gap:12px;
+  padding:12px;border-radius:14px;border:2px solid var(--border);
+  background:#fff;cursor:pointer;text-align:left;transition:all .15s;
+  margin-bottom:8px;
+}
+.login-user-btn:hover{border-color:var(--sky-l);background:#FAFEFF}
+.login-user-btn.sel{border-color:var(--sky);background:#F0FBFF}
+.login-user-info .name{font-size:14px;font-weight:700;color:var(--txt)}
+.login-user-info .role{font-size:11px;color:var(--muted);margin-top:1px}
+/* ── 新規登録ステップ ── */
+.step-indicator{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:24px}
+.step-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);transition:all .2s}
+.step-dot.active{background:#fff;width:24px;border-radius:4px}
+.step-dot.done{background:rgba(255,255,255,.6)}
+.register-card{background:#fff;border-radius:24px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.15);overflow:hidden}
+.register-card-header{background:var(--header-grad);padding:20px 24px 16px;color:#fff}
+.register-card-header .step-label{font-size:11px;opacity:.7;font-weight:600;letter-spacing:.06em;margin-bottom:4px}
+.register-card-header h2{font-size:18px;font-weight:800}
+.register-card-body{padding:20px 24px 24px}
+.email-input-wrap{position:relative}
+.email-input-wrap input{padding-right:44px}
+.email-check-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:8px;background:var(--sky);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff}
+.email-check-btn svg{width:16px;height:16px;stroke-width:2.5}
+.color-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.color-opt{height:44px;border-radius:12px;border:3px solid transparent;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.color-opt.sel{border-color:#1E293B;transform:scale(1.08);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.color-opt span{font-size:10px;color:#fff;font-weight:800;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+.back-text-btn{background:none;border:none;color:var(--muted);font-size:13px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:4px;padding:0;margin-bottom:16px}
+.back-text-btn svg{width:14px;height:14px;stroke-width:2.5}
+
+/* ── RECEIPT ── */
+.receipt-upload{
+  border:2px dashed var(--border);border-radius:14px;
+  padding:20px;text-align:center;cursor:pointer;
+  transition:border .15s,background .15s;
+}
+.receipt-upload:hover{border-color:var(--sky);background:#F0FBFF}
+.receipt-preview{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--border)}
+.receipt-preview img{width:100%;height:150px;object-fit:cover;display:block}
+.receipt-overlay{
+  position:absolute;bottom:0;inset-x:0;
+  background:rgba(15,30,50,.7);
+  padding:8px 12px;display:flex;align-items:center;justify-content:space-between;
+}
+.spinner{width:20px;height:20px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+/* ── DETAIL INFO TABLE ── */
+.info-table{background:#F8FDFE;border-radius:14px;padding:14px;margin-bottom:14px}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-row .key{font-size:12px;color:var(--sub);font-weight:600}
+.info-row .val{font-size:13px;color:var(--txt);font-weight:700;text-align:right;max-width:60%}
+
+/* ── MISC ── */
+.pill-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.pill-row::-webkit-scrollbar{display:none}
+.pill{flex-shrink:0;padding:7px 14px;border-radius:100px;font-size:12px;font-weight:700;border:none;cursor:pointer;transition:all .15s;background:#F1F5F9;color:var(--sub)}
+.pill.active{background:var(--sky);color:#fff;box-shadow:0 3px 10px rgba(14,165,233,.3)}
+.week-hdr{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
+.week-hdr span{text-align:center;font-size:11px;font-weight:700;padding:4px 0;color:var(--muted)}
+.week-hdr span.sun{color:#F43F5E}.week-hdr span.sat{color:#0EA5E9}
+.wday-exc{flex:1;padding:8px 2px;border-radius:10px;font-size:11px;font-weight:800;border:none;cursor:pointer;transition:all .15s}
+.wday-exc.on{background:var(--sky-l);color:var(--sky)}
+.wday-exc.on.sun{background:#FEE2E2;color:#F43F5E}
+.wday-exc.on.sat{background:#E0F2FE;color:#0284C7}
+.wday-exc.off{background:#F1F5F9;color:var(--muted);text-decoration:line-through}
+.range-preview{background:var(--sky-l);border-radius:12px;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.range-preview .rp-label{font-size:12px;color:var(--sky-d);font-weight:600}
+.range-preview .rp-val{font-size:22px;font-weight:900;color:var(--sky)}
+.shift-bar{border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.other-item-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.other-item-row input:first-child{flex:1}
+.other-item-row input:nth-child(2){width:64px}
+.sum-bar{background:var(--sky-l);border-radius:12px;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.sum-bar .s-count{font-size:12px;color:var(--sky-d);font-weight:600}
+.sum-bar .s-total{font-size:15px;font-weight:800;color:var(--sky)}
+.alert-banner{border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.alert-banner svg{width:16px;height:16px;flex-shrink:0;stroke-width:2}
+.alert-amber{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E}
+.alert-amber svg{color:#F59E0B}
+.back-btn{width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;margin-right:4px;flex-shrink:0}
+.back-btn svg{width:16px;height:16px;stroke-width:2.5}
+.detail-header{display:flex;align-items:center;gap:8px;padding:14px 16px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:10}
+.detail-header h2{font-size:15px;font-weight:800;color:var(--txt);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.perf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.perf-cell{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 6px;text-align:center}
+.perf-cell .pc-label{font-size:10px;color:var(--sub);font-weight:700;margin-bottom:2px}
+.perf-cell .pc-val{font-size:20px;font-weight:900;line-height:1}
+.perf-cell .pc-unit{font-size:10px;color:var(--muted)}
+.tab-toggle{display:flex;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.tab-toggle button{flex:1;padding:10px;font-size:12px;font-weight:700;font-family:inherit;border:none;background:#fff;color:var(--sub);cursor:pointer;transition:all .15s}
+.tab-toggle button.active{background:var(--sky);color:#fff}
+.client-card .cc-name{font-size:14px;font-weight:800;color:var(--txt);margin-bottom:8px}
+.client-card .cc-row{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub);margin-bottom:4px}
+.client-card .cc-row svg{width:12px;height:12px;stroke-width:2;color:var(--muted);flex-shrink:0}
+.color-picker{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.color-dot-btn{height:42px;border-radius:10px;border:2px solid transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.color-dot-btn.selected{border-color:#1E293B;transform:scale(1.05)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+const COLORS=[
+  {id:"sky",    label:"スカイ",   bg:"#0EA5E9",light:"#E0F2FE",text:"#0369A1",bar:"#38BDF8"},
+  {id:"emerald",label:"グリーン", bg:"#10B981",light:"#D1FAE5",text:"#065F46",bar:"#34D399"},
+  {id:"teal",   label:"ティール", bg:"#14B8A6",light:"#CCFBF1",text:"#0F766E",bar:"#2DD4BF"},
+  {id:"violet", label:"バイオレット",bg:"#8B5CF6",light:"#EDE9FE",text:"#5B21B6",bar:"#A78BFA"},
+  {id:"rose",   label:"ローズ",   bg:"#F43F5E",light:"#FFE4E6",text:"#9F1239",bar:"#FB7185"},
+  {id:"amber",  label:"アンバー", bg:"#F59E0B",light:"#FEF3C7",text:"#92400E",bar:"#FCD34D"},
+  {id:"orange", label:"オレンジ", bg:"#F97316",light:"#FFEDD5",text:"#9A3412",bar:"#FB923C"},
+  {id:"pink",   label:"ピンク",   bg:"#EC4899",light:"#FCE7F3",text:"#9D174D",bar:"#F472B6"},
+];
+const getC=id=>COLORS.find(c=>c.id===id)||COLORS[0];
+
+// ★ GAS WebアプリのURL（デプロイ後に書き換え）
+const GAS_URL = "★ここにGASデプロイURLを貼り付け★";
+
+// マスターデータ（JSONファイルから読み込み）
+let USERS=[], clients=[], projects=[], STORES=[];
+// 動的データ（GASから読み込み）
+let shifts=[], reports=[], expenses=[];
+
+let dataReady = false;
+
+async function loadAllData() {
+  if (GAS_URL.startsWith("★")) return false; // GAS未設定 → モック使用
+  const res = await fetch(`${GAS_URL}?action=getAll`);
+  const d   = await res.json();
+  if (d.error) throw new Error(d.error);
+
+  if (Array.isArray(d.users))    USERS    = d.users;
+  if (Array.isArray(d.clients))  clients  = d.clients;
+  if (Array.isArray(d.projects)) projects = d.projects;
+  if (Array.isArray(d.stores))   STORES   = d.stores;
+  if (Array.isArray(d.shifts))   shifts   = d.shifts.map(normalizeShift);
+  if (Array.isArray(d.reports))  reports  = d.reports.map(normalizeReport);
+  if (Array.isArray(d.expenses)) expenses = d.expenses.map(normalizeExpense);
+  return true;
+}
+
+async function gasPost(action, data) {
+  if (GAS_URL.startsWith("★")) return { success: true };
+  try {
+    const res = await fetch(GAS_URL, {
+      method:"POST", body: JSON.stringify({action, data}),
+    });
+    return await res.json();
+  } catch(e) { console.warn("GAS POST error:", e); return {error: e.message}; }
+}
+
+function normalizeShift(r) {
+  return {id:r.id,date:r.date,uid:r.uid,projId:r.projId,storeId:r.storeId,type:r.type};
+}
+function normalizeReport(r) {
+  let others=[];
+  try { others=typeof r.others==="string"?JSON.parse(r.others||"[]"):(r.others||[]); } catch(e){}
+  return {id:r.id,date:r.date,uid:r.uid,projId:r.projId,storeId:r.storeId,
+    in:r.in,out:r.out,new_:+r.new_||0,mnp:+r.mnp||0,bb:+r.bb||0,
+    elec:+r.elec||0,card:+r.card||0,uc:+r.uc||0,others,acc:+r.acc||0,note:r.note||""};
+}
+function normalizeExpense(r) {
+  return {id:r.id,uid:r.uid,date:r.date,projId:r.projId||null,
+    cat:r.cat,amt:+r.amt||0,note:r.note,status:r.status,
+    receiptURL:r.receiptURL||null,receiptPreview:r.receiptPreview||null};
+}
+
+function loadMockDynamic() {
+  shifts=[
+    {id:"SH001",date:"2026-06-14",uid:"sato@example.com",  projId:"P001",storeId:"S001",type:"勤務"},
+    {id:"SH002",date:"2026-06-14",uid:"suzuki@example.com",projId:"P002",storeId:"S003",type:"勤務"},
+    {id:"SH003",date:"2026-06-13",uid:"sato@example.com",  projId:"P001",storeId:"S002",type:"勤務"},
+    {id:"SH004",date:"2026-06-15",uid:"sato@example.com",  projId:"P001",storeId:"S001",type:"勤務"},
+    {id:"SH005",date:"2026-06-15",uid:"suzuki@example.com",projId:"P002",storeId:"S003",type:"勤務"},
+    {id:"SH016",date:"2026-06-19",uid:"sato@example.com",  projId:"",    storeId:"",    type:"公休"},
+    {id:"SH017",date:"2026-06-25",uid:"suzuki@example.com",projId:"",    storeId:"",    type:"公休"},
+  ];
+  reports=[
+    {id:"R001",date:"2026-06-13",uid:"sato@example.com",projId:"P001",storeId:"S002",
+     in:"09:00",out:"18:00",new_:3,mnp:2,bb:1,elec:1,card:2,uc:1,
+     others:[{name:"ウイルスバスター",cnt:2}],acc:8500,note:"MNPが好調でした。"},
+    {id:"R002",date:"2026-06-13",uid:"suzuki@example.com",projId:"P002",storeId:"S003",
+     in:"10:00",out:"19:00",new_:2,mnp:1,bb:2,elec:0,card:1,uc:0,
+     others:[{name:"端末保証",cnt:3}],acc:5200,note:"BBの問い合わせが多かった。"},
+  ];
+  expenses=[
+    {id:"E001",uid:"sato@example.com",  date:"2026-06-13",projId:"P001",cat:"交通費",    amt:1200,note:"交通費（渋谷往復）",        status:"承認",  receiptURL:null,receiptPreview:null},
+    {id:"E002",uid:"suzuki@example.com",date:"2026-06-13",projId:"P002",cat:"交通費",    amt:980, note:"交通費（新宿）",            status:"申請中",receiptURL:null,receiptPreview:null},
+    {id:"E003",uid:"sato@example.com",  date:"2026-06-12",projId:"P001",cat:"接待費",    amt:3500,note:"接待費（クライアント同行）",status:"申請中",receiptURL:null,receiptPreview:null},
+    {id:"E004",uid:"suzuki@example.com",date:"2026-06-11",projId:null,  cat:"備品・消耗品",amt:2200,note:"コピー用紙・文具",        status:"承認",  receiptURL:null,receiptPreview:null},
+    {id:"E005",uid:"sato@example.com",  date:"2026-06-10",projId:null,  cat:"研修・セミナー",amt:5500,note:"営業スキルアップ研修",  status:"申請中",receiptURL:null,receiptPreview:null},
+  ];
+}
+
+const EXP_CATS=["交通費","接待費","備品・消耗品","通信費","研修・セミナー","その他"];
+const TODAY="2026-06-14";
+const WDAYS=["日","月","火","水","木","金","土"];
+const fmt=n=>(+n||0).toLocaleString("ja-JP");
+const ymd=(y,m,d)=>`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+const statusBadge=s=>{
+  const m={稼働中:"badge-green",商談中:"badge-amber",契約済:"badge-sky",終了:"badge-gray",承認:"badge-green",申請中:"badge-amber",差戻し:"badge-red"};
+  return `<span class="badge ${m[s]||'badge-gray'}">${s}</span>`;
+};
+
+// ── STATE ─────────────────────────────────────────────────────
+let currentUser=null, currentTab="", detailProject=null;
+let calYear=2026, calMonth=5, calSelDate=null;
+let modal=null;
+let toast_timer=null;
+let projTabState="案件";
+
+// ── HELPERS ───────────────────────────────────────────────────
+function showToast(msg){
+  document.querySelectorAll(".toast").forEach(e=>e.remove());
+  const t=document.createElement("div");
+  t.className="toast";
+  t.innerHTML=`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>${msg}`;
+  document.getElementById("app").appendChild(t);
+  clearTimeout(toast_timer);
+  toast_timer=setTimeout(()=>t.remove(),2800);
+}
+
+function openModal(html, onMount){
+  closeModal();
+  const bd=document.createElement("div");
+  bd.className="modal-backdrop";
+  bd.innerHTML=`<div class="modal-sheet"><div class="modal-handle"></div>${html}</div>`;
+  bd.addEventListener("click",e=>{if(e.target===bd)closeModal();});
+  document.getElementById("app").appendChild(bd);
+  modal=bd;
+  if(onMount) onMount(bd);
+}
+function closeModal(){if(modal){modal.remove();modal=null;}}
+
+const ICO={
+  plus:`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>`,
+  x:`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>`,
+  check:`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>`,
+  back:`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>`,
+  eye:`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>`,
+  bell:`<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"/></svg>`,
+};
+
+function avatar(user,size=36){
+  const c=getC(user.color);
+  return `<div class="avatar" style="width:${size}px;height:${size}px;background:${c.light};color:${c.text};font-size:${size*0.38}px">${user.name[0]}</div>`;
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function render(){
+  if(!currentUser){renderLogin();return;}
+  const isAdmin=currentUser.role==="Admin";
+  if(!currentTab) currentTab=isAdmin?"dashboard":"home";
+
+  let screenHTML="";
+  if(detailProject){screenHTML=renderProjectDetail();} 
+  else{
+    switch(currentTab){
+      case"dashboard": screenHTML=renderDashboard();break;
+      case"home":      screenHTML=renderHome();break;
+      case"projects":  screenHTML=renderProjects();break;
+      case"shifts":    screenHTML=renderShifts();break;
+      case"reports":   screenHTML=renderReports();break;
+      case"expenses":  screenHTML=renderExpenses();break;
+    }
+  }
+
+  const adminTabs=[
+    {id:"dashboard",label:"ダッシュボード",icon:'<svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg>'},
+    {id:"projects", label:"案件",          icon:'<svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z"/></svg>'},
+    {id:"shifts",   label:"シフト",         icon:'<svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>'},
+    {id:"reports",  label:"日報",           icon:'<svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z"/></svg>'},
+    {id:"expenses", label:"経費",           icon:'<svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0c1.1.128 1.907 1.077 1.907 2.185Z"/></svg>'},
+  ];
+  const empTabs=[
+    {id:"home",     label:"ホーム",  icon:'<svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>'},
+    {id:"projects", label:"案件",    icon:'<svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z"/></svg>'},
+    {id:"reports",  label:"日報",    icon:'<svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z"/></svg>'},
+    {id:"expenses", label:"経費",    icon:'<svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0c1.1.128 1.907 1.077 1.907 2.185Z"/></svg>'},
+  ];
+  const tabs=isAdmin?adminTabs:empTabs;
+  const navHTML=`<nav class="bottom-nav">${tabs.map(t=>`
+    <button class="nav-btn${(detailProject?"":currentTab)===t.id?" active":""}" onclick="goTab('${t.id}')">
+      <div class="nav-icon-wrap">${t.icon}</div>
+      <span>${t.label}</span>
+    </button>`).join("")}</nav>`;
+
+  document.getElementById("app").innerHTML=`<div class="screen">${screenHTML}</div>${navHTML}`;
+  afterRender();
+}
+
+function goTab(id){detailProject=null;currentTab=id;render();}
+function afterRender(){mountShiftCalendar();}
+
+// ── LOGIN & REGISTER ─────────────────────────────────────────
+// ログイン状態管理
+let loginStep = "email";   // "email" | "register" | "demo"
+let loginEmail = "";
+let registerForm = { name:"", color:"sky", empId:"", phone:"" };
+
+function renderLogin(){
+  if (loginStep === "demo") { renderDemoLogin(); return; }
+  if (loginStep === "register") { renderRegisterStep(); return; }
+  renderEmailLogin();
+}
+
+// ── Step 0: メールアドレス入力 ────────────────────────────────
+function renderEmailLogin(){
+  const isGasReady = !GAS_URL.startsWith("★");
+  document.getElementById("app").innerHTML=`
+  <div class="login-wrap">
+    <div style="text-align:center;margin-bottom:32px">
+      <div class="login-logo">BIZFLOW</div>
+      <div class="login-tagline">携帯・回線販売 業務管理システム</div>
+    </div>
+    <div class="register-card">
+      <div class="register-card-header">
+        <div class="step-label">SIGN IN</div>
+        <h2>メールアドレスでログイン</h2>
+      </div>
+      <div class="register-card-body">
+        <div class="field" style="margin-bottom:8px">
+          <label>Googleアカウントのメールアドレス</label>
+          <div class="email-input-wrap">
+            <input type="email" id="login-email" placeholder="example@gmail.com"
+              value="${loginEmail}"
+              onkeydown="if(event.key==='Enter')checkEmail()"
+              style="width:100%"/>
+            <button class="email-check-btn" onclick="checkEmail()">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+            </button>
+          </div>
+        </div>
+        <div id="login-msg" style="font-size:12px;color:var(--muted);margin-bottom:16px;min-height:18px"></div>
+        <button onclick="checkEmail()" class="btn btn-primary btn-full" style="margin-bottom:12px">次へ</button>
+        ${!isGasReady ? `<button onclick="loginStep='demo';renderLogin()" style="width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">デモモードで試す</button>` : ""}
+      </div>
+    </div>
+  </div>`;
+  setTimeout(()=>document.getElementById("login-email")?.focus(),100);
+}
+
+async function checkEmail(){
+  const email = document.getElementById("login-email")?.value?.trim();
+  if (!email || !email.includes("@")) {
+    document.getElementById("login-msg").innerHTML = '<span style="color:#F43F5E">正しいメールアドレスを入力してください</span>';
+    return;
+  }
+  loginEmail = email;
+  document.getElementById("login-msg").textContent = "確認中...";
+
+  // GAS未設定の場合はモックで確認
+  const user = USERS.find(u => u.email === email);
+  if (user) {
+    // 既存ユーザー → ログイン
+    currentUser = user;
+    currentTab = user.role === "Admin" ? "dashboard" : "home";
+    loginStep = "email"; loginEmail = "";
+    render();
+  } else {
+    // 未登録 → 新規登録へ
+    loginStep = "register";
+    registerForm = { name:"", color:"sky", empId:"EMP" + String(Date.now()).slice(-4), phone:"" };
+    renderLogin();
+  }
+}
+
+// ── Step 1〜3: 新規登録ウィザード ─────────────────────────────
+let regStep = 1; // 1:基本情報 2:カラー 3:確認
+
+function renderRegisterStep(){
+  const steps = ["基本情報", "カラー選択", "確認"];
+  const dotsHTML = steps.map((_,i)=>`<div class="step-dot${i+1===regStep?" active":i+1<regStep?" done":""}"></div>`).join("");
+
+  let bodyHTML = "";
+  if (regStep === 1) bodyHTML = renderRegStep1();
+  if (regStep === 2) bodyHTML = renderRegStep2();
+  if (regStep === 3) bodyHTML = renderRegStep3();
+
+  document.getElementById("app").innerHTML=`
+  <div class="login-wrap">
+    <div class="step-indicator">${dotsHTML}</div>
+    <div class="register-card">
+      <div class="register-card-header">
+        <div class="step-label">STEP ${regStep} / ${steps.length} — ${steps[regStep-1]}</div>
+        <h2>${regStep===1?"アカウント作成":regStep===2?"あなたのカラーを選んで":"内容を確認"}</h2>
+      </div>
+      <div class="register-card-body">${bodyHTML}</div>
+    </div>
+  </div>`;
+}
+
+function renderRegStep1(){
+  return `
+    <button class="back-text-btn" onclick="loginStep='email';regStep=1;renderLogin()">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+      メールアドレス入力に戻る
+    </button>
+    <div style="background:var(--sky-l);border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--sky-d)">
+      <strong>${loginEmail}</strong> は未登録です。アカウントを作成します。
+    </div>
+    <div class="field">
+      <label>氏名 <span style="color:#F43F5E">*</span></label>
+      <input type="text" id="reg-name" value="${registerForm.name}" placeholder="例: 田中 太郎" oninput="registerForm.name=this.value">
+    </div>
+    <div class="field">
+      <label>電話番号</label>
+      <input type="tel" id="reg-phone" value="${registerForm.phone}" placeholder="090-0000-0000" oninput="registerForm.phone=this.value">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="goRegStep2()">次へ → カラー選択</button>`;
+}
+
+function goRegStep2(){
+  const name = document.getElementById("reg-name")?.value?.trim();
+  if (!name){ showRegError("氏名を入力してください"); return; }
+  registerForm.name = name;
+  registerForm.phone = document.getElementById("reg-phone")?.value?.trim()||"";
+  regStep = 2;
+  renderRegisterStep();
+}
+
+function renderRegStep2(){
+  const colorOpts = COLORS.map(col=>`
+    <div class="color-opt${registerForm.color===col.id?" sel":""}"
+      style="background:${col.bg}" onclick="registerForm.color='${col.id}';renderRegisterStep()">
+      <span>${col.label}</span>
+    </div>`).join("");
+  return `
+    <button class="back-text-btn" onclick="regStep=1;renderRegisterStep()">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+      基本情報に戻る
+    </button>
+    <p style="font-size:13px;color:var(--sub);margin-bottom:16px">カレンダーやカードに表示されるあなたのカラーです</p>
+    <div class="color-grid">${colorOpts}</div>
+    <div style="display:flex;align-items:center;gap:10px;background:var(--sky-l);border-radius:14px;padding:12px 16px;margin-bottom:16px">
+      <div class="avatar" style="background:${getC(registerForm.color).bg};color:#fff;font-size:16px">${registerForm.name[0]||"?"}</div>
+      <div>
+        <div style="font-size:13px;font-weight:700">${registerForm.name}</div>
+        <div style="font-size:11px;color:var(--sub)">${getC(registerForm.color).label}</div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="regStep=3;renderRegisterStep()">次へ → 確認</button>`;
+}
+
+function renderRegStep3(){
+  const c = getC(registerForm.color);
+  return `
+    <button class="back-text-btn" onclick="regStep=2;renderRegisterStep()">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+      カラー選択に戻る
+    </button>
+    <div style="text-align:center;margin-bottom:20px">
+      <div class="avatar" style="background:${c.bg};color:#fff;width:64px;height:64px;font-size:24px;margin:0 auto 10px">${registerForm.name[0]}</div>
+      <div style="font-size:18px;font-weight:800">${registerForm.name}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">${loginEmail}</div>
+    </div>
+    <div style="background:#F8FDFE;border-radius:14px;padding:14px;margin-bottom:20px">
+      <div class="info-row"><span class="key">氏名</span><span class="val">${registerForm.name}</span></div>
+      <div class="info-row"><span class="key">メール</span><span class="val" style="font-size:12px">${loginEmail}</span></div>
+      ${registerForm.phone?`<div class="info-row"><span class="key">電話</span><span class="val">${registerForm.phone}</span></div>`:""}
+      <div class="info-row"><span class="key">権限</span><span class="val">Employee（スタッフ）</span></div>
+      <div class="info-row" style="border:none"><span class="key">カラー</span><span class="val" style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${c.bg}"></span>${c.label}</span></div>
+    </div>
+    <button class="btn btn-success btn-full" style="margin-bottom:10px" onclick="submitRegister()">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:16px;height:16px;stroke-width:2.5"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+      この内容で登録する
+    </button>
+    <p style="font-size:11px;color:var(--muted);text-align:center">登録後すぐにアプリを使い始められます</p>`;
+}
+
+async function submitRegister(){
+  const newUser = {
+    email:  loginEmail,
+    name:   registerForm.name,
+    role:   "Employee",
+    empId:  registerForm.empId,
+    color:  registerForm.color,
+    phone:  registerForm.phone || "",
+  };
+
+  // GASに保存
+  await gasPost("addUser", newUser);
+
+  // ローカルにも追加
+  USERS = [...USERS, newUser];
+  currentUser = newUser;
+  currentTab = "home";
+  loginStep = "email"; regStep = 1; loginEmail = "";
+  render();
+  showToast("アカウントを作成しました！");
+}
+
+function showRegError(msg){
+  // 既存のエラーを消して再表示
+  const old = document.getElementById("reg-err");
+  if(old) old.remove();
+  const div = document.createElement("div");
+  div.id = "reg-err";
+  div.style.cssText = "color:#F43F5E;font-size:12px;font-weight:600;margin-bottom:10px;background:#FEE2E2;border-radius:10px;padding:8px 12px";
+  div.textContent = msg;
+  document.querySelector(".register-card-body")?.prepend(div);
+}
+
+// ── デモモード（GAS未設定時） ─────────────────────────────────
+function renderDemoLogin(){
+  document.getElementById("app").innerHTML=`
+  <div class="login-wrap">
+    <div style="text-align:center;margin-bottom:32px">
+      <div class="login-logo">BIZFLOW</div>
+      <div class="login-tagline">デモモード</div>
+    </div>
+    <div class="login-card">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px">ユーザーを選択</div>
+      ${USERS.map(u=>{const c=getC(u.color);return`
+      <button class="login-user-btn" onclick="demoLogin('${u.email}')" id="lbtn_${u.email.replace(/[@.]/g,'_')}">
+        <div class="avatar" style="background:${c.light};color:${c.text};width:40px;height:40px;font-size:15px">${u.name[0]}</div>
+        <div class="login-user-info">
+          <div class="name">${u.name}</div>
+          <div class="role">${u.role} · ${u.email}</div>
+        </div>
+      </button>`}).join("")}
+      <button id="demo-go" onclick="submitDemoLogin()" disabled style="margin-top:12px;width:100%;padding:14px;border-radius:14px;border:none;background:var(--sky);color:#fff;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer;opacity:.35;transition:opacity .15s">ログイン</button>
+      <button onclick="loginStep='email';renderLogin()" style="margin-top:8px;width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">← メールアドレスで試す</button>
+    </div>
+  </div>`;
+}
+let selectedDemoEmail = null;
+function demoLogin(email){
+  selectedDemoEmail = email;
+  document.querySelectorAll(".login-user-btn").forEach(b=>b.classList.remove("sel"));
+  document.getElementById("lbtn_"+email.replace(/[@.]/g,"_"))?.classList.add("sel");
+  const btn = document.getElementById("demo-go");
+  if(btn){ btn.disabled=false; btn.style.opacity="1"; }
+}
+function submitDemoLogin(){
+  if(!selectedDemoEmail) return;
+  currentUser = USERS.find(u=>u.email===selectedDemoEmail);
+  currentTab = currentUser.role==="Admin" ? "dashboard" : "home";
+  loginStep = "email"; selectedDemoEmail = null;
+  render();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+function renderDashboard(){
+  const active=projects.filter(p=>p.status==="稼働中");
+  const todayS=shifts.filter(s=>s.date===TODAY&&s.type==="勤務");
+  const pending=expenses.filter(e=>e.status==="申請中");
+  const totalNew=reports.reduce((a,r)=>a+r.new_,0);
+  const totalMNP=reports.reduce((a,r)=>a+r.mnp,0);
+  const totalBB =reports.reduce((a,r)=>a+r.bb,0);
+  const totalEl =reports.reduce((a,r)=>a+r.elec,0);
+  const totalCard=reports.reduce((a,r)=>a+r.card,0);
+  const totalUC =reports.reduce((a,r)=>a+r.uc,0);
+  const emps=USERS.filter(u=>u.role==="Employee");
+  return `
+  <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
+    <div class="eyebrow">管理者ダッシュボード</div>
+    <h1>${currentUser.name} さん</h1>
+    <div class="sub">${TODAY}</div>
+  </div>
+  <div style="padding:0 16px 24px;margin-top:-30px">
+    ${pending.length?`<div class="alert-banner alert-amber" style="margin-top:0;margin-bottom:12px">${ICO.bell}<span style="font-size:13px;font-weight:600">経費承認待ちが <strong>${pending.length}</strong> 件あります</span></div>`:""}
+    <div class="stat-grid" style="margin-bottom:10px">
+      <div class="stat-card"><div class="label">稼働案件</div><div class="value">${active.length}</div><div class="unit">件</div></div>
+      <div class="stat-card teal"><div class="label">本日稼働</div><div class="value">${todayS.length}</div><div class="unit">名</div></div>
+      <div class="stat-card green"><div class="label">今月 新規</div><div class="value">${totalNew}</div><div class="unit">件</div></div>
+      <div class="stat-card sky"><div class="label">今月 MNP</div><div class="value">${totalMNP}</div><div class="unit">件</div></div>
+      <div class="stat-card" style="--val-color:#F97316"><div class="label">今月 BB</div><div class="value" style="color:#F97316">${totalBB}</div><div class="unit">件</div></div>
+      <div class="stat-card amber"><div class="label">今月 でんき</div><div class="value">${totalEl}</div><div class="unit">件</div></div>
+      <div class="stat-card pink"><div class="label">今月 カード</div><div class="value">${totalCard}</div><div class="unit">件</div></div>
+      <div class="stat-card violet"><div class="label">上位キャリア</div><div class="value">${totalUC}</div><div class="unit">件</div></div>
+    </div>
+    <div class="section-label">スタッフ別 今月実績</div>
+    ${emps.map(u=>{
+      const c=getC(u.color);
+      const rs=reports.filter(r=>r.uid===u.email);
+      const tot=rs.reduce((a,r)=>a+r.new_+r.mnp,0);
+      return`<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px">
+        ${avatar(u)}
+        <div style="flex:1"><div style="font-size:14px;font-weight:700">${u.name}</div><div style="font-size:12px;color:var(--sub)">新規+MNP: ${tot} 件</div></div>
+        <div style="text-align:right"><div style="font-size:22px;font-weight:900;color:${c.bg}">${tot}</div><div style="font-size:11px;color:var(--muted)">件</div></div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+// ── HOME ──────────────────────────────────────────────────────
+function renderHome(){
+  const u=currentUser;
+  const c=getC(u.color);
+  const myShifts=shifts.filter(s=>s.uid===u.email);
+  const todayS=myShifts.find(s=>s.date===TODAY&&s.type==="勤務");
+  const proj=todayS?projects.find(p=>p.id===todayS.projId):null;
+  const store=todayS?STORES.find(s=>s.id===todayS.storeId):null;
+  const myR=reports.filter(r=>r.uid===u.email);
+  const totalNew=myR.reduce((a,r)=>a+r.new_,0);
+  const totalMNP=myR.reduce((a,r)=>a+r.mnp,0);
+  return`
+  <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
+    <div class="eyebrow">ホーム</div>
+    <h1>${u.name} さん</h1>
+    <div class="sub">${TODAY}</div>
+  </div>
+  <div style="padding:0 16px 24px;margin-top:-30px">
+    <div class="card" style="margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;letter-spacing:.06em">本日のシフト</div>
+      ${todayS?`<div style="font-size:15px;font-weight:800;color:var(--txt)">${proj?.name}</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:3px">📍 ${store?.name} — ${store?.addr}</div>`
+      :`<div style="font-size:14px;color:var(--muted)">本日のシフトはありません</div>`}
+    </div>
+    <div class="stat-grid" style="margin-bottom:16px">
+      <div class="stat-card green"><div class="label">今月 新規</div><div class="value">${totalNew}</div><div class="unit">件</div></div>
+      <div class="stat-card sky"><div class="label">今月 MNP</div><div class="value">${totalMNP}</div><div class="unit">件</div></div>
+    </div>
+    <div class="section-label">直近のシフト</div>
+    ${myShifts.slice(0,4).map(s=>{
+      const p=projects.find(pp=>pp.id===s.projId);
+      const st=STORES.find(st=>st.id===s.storeId);
+      return`<div class="card" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:11px;color:var(--muted)">${s.date}</div>
+          ${s.type==="公休"?`<div style="font-size:13px;font-weight:700;color:var(--muted)">公休</div>`
+          :`<div style="font-size:14px;font-weight:700">${p?.name}</div><div style="font-size:12px;color:var(--sub)">${st?.name}</div>`}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          ${s.date===TODAY?`<span class="badge badge-sky">今日</span>`:""}
+          ${s.type==="公休"?`<span class="badge badge-gray">公休</span>`:""}
+        </div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+// ── PROJECTS ──────────────────────────────────────────────────
+let projFilter="全て";
+function renderProjects(){
+  const isAdmin=currentUser.role==="Admin";
+  const statuses=["全て","稼働中","商談中","契約済","終了"];
+  let prjs=isAdmin?projects:projects.filter(p=>shifts.some(s=>s.uid===currentUser.email&&s.projId===p.id));
+  if(projFilter!=="全て") prjs=prjs.filter(p=>p.status===projFilter);
+  const cls=clients;
+  return`
+  <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div><div class="eyebrow">案件 / クライアント</div><h1 style="font-size:20px">一覧</h1></div>
+      ${isAdmin?`<div style="display:flex;gap:8px">
+        <button class="fab" onclick="openAddClient()" title="クライアント追加" style="background:var(--teal)">${ICO.plus}</button>
+        <button class="fab" onclick="openAddProject()" title="案件追加">${ICO.plus}</button>
+      </div>`:""}
+    </div>
+  </div>
+  <div style="padding:0 16px 24px;margin-top:-30px">
+    ${isAdmin?`<div class="tab-toggle"><button class="${projTabState==="案件"?"active":""}" onclick="projTabState='案件';render()">案件</button><button class="${projTabState==="クライアント"?"active":""}" onclick="projTabState='クライアント';render()">クライアント</button></div>`:""}
+    ${projTabState==="クライアント"&&isAdmin?`
+      ${cls.map(c=>`<div class="card client-card" style="margin-bottom:8px">
+        <div class="cc-name">${c.company}</div>
+        <div class="cc-row"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>${c.contact}</div>
+        <div class="cc-row"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>${c.tel}</div>
+        <div class="cc-row"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/></svg>${c.mail}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">関連案件: ${projects.filter(p=>p.clientId===c.id).length} 件</div>
+      </div>`).join("")}`:`
+    <div class="pill-row" style="margin-bottom:12px">
+      ${statuses.map(s=>`<button class="pill${projFilter===s?" active":""}" onclick="projFilter='${s}';render()">${s}</button>`).join("")}
+    </div>
+    ${prjs.map(p=>{
+      const cl=cls.find(c=>c.id===p.clientId);
+      const sts=STORES.filter(s=>s.projId===p.id);
+      return`<div class="card clickable" style="margin-bottom:8px" onclick="openProjectDetail('${p.id}')">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+          <div style="flex:1;min-width:0;margin-right:8px">
+            <div style="font-size:14px;font-weight:800;line-height:1.3">${p.name}</div>
+            <div style="font-size:12px;color:var(--sub);margin-top:2px">${cl?.company||""}</div>
+          </div>
+          ${statusBadge(p.status)}
+        </div>
+        <div style="font-size:12px;color:var(--muted)">${p.start} 〜 ${p.end} · ${sts.length} 店舗</div>
+      </div>`;
+    }).join("")}
+    ${prjs.length===0?`<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:14px">該当する案件がありません</div>`:""}`}
+  </div>`;
+}
+
+function openProjectDetail(id){
+  detailProject=projects.find(p=>p.id===id);
+  render();
+}
+
+function renderProjectDetail(){
+  const p=detailProject;
+  const cl=clients.find(c=>c.id===p.clientId);
+  const sts=STORES.filter(s=>s.projId===p.id);
+  const sh=shifts.filter(s=>s.projId===p.id);
+  const rs=reports.filter(r=>r.projId===p.id);
+  const totalNew=rs.reduce((a,r)=>a+r.new_,0);
+  const totalMNP=rs.reduce((a,r)=>a+r.mnp,0);
+  const totalBB =rs.reduce((a,r)=>a+r.bb,0);
+  const isAdmin=currentUser.role==="Admin";
+  return`
+  <div class="detail-header" style="background:var(--bg)">
+    <button class="back-btn" style="background:var(--sky-l);color:var(--sky)" onclick="detailProject=null;render()">${ICO.back}</button>
+    <h2>${p.name}</h2>
+    ${statusBadge(p.status)}
+  </div>
+  <div style="padding:16px">
+    <div class="card" style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:10px;letter-spacing:.06em">案件情報</div>
+      <div class="info-table" style="margin:0">
+        <div class="info-row"><span class="key">取引先</span><span class="val">${cl?.company}</span></div>
+        <div class="info-row"><span class="key">担当者</span><span class="val">${cl?.contact}</span></div>
+        <div class="info-row"><span class="key">期間</span><span class="val">${p.start} 〜 ${p.end}</span></div>
+        ${isAdmin?`<div class="info-row"><span class="key">単価</span><span class="val">¥${fmt(p.price)}</span></div>`:""}
+      </div>
+    </div>
+    <div class="perf-grid">
+      <div class="perf-cell"><div class="pc-label">新規</div><div class="pc-val" style="color:var(--em)">${totalNew}</div><div class="pc-unit">件</div></div>
+      <div class="perf-cell"><div class="pc-label">MNP</div><div class="pc-val" style="color:var(--sky)">${totalMNP}</div><div class="pc-unit">件</div></div>
+      <div class="perf-cell"><div class="pc-label">BB</div><div class="pc-val" style="color:#F97316">${totalBB}</div><div class="pc-unit">件</div></div>
+    </div>
+    <div class="section-label">店舗 (${sts.length})</div>
+    ${sts.map(s=>`<div class="card" style="margin-bottom:8px"><div style="font-size:14px;font-weight:700">${s.name}</div><div style="font-size:12px;color:var(--sub);margin-top:2px">${s.addr}</div></div>`).join("")}
+    <div class="section-label">シフト (${sh.length})</div>
+    ${sh.slice(0,5).map(s=>{
+      const u=USERS.find(u=>u.email===s.uid);
+      const st=STORES.find(st=>st.id===s.storeId);
+      const c=getC(u?.color||"sky");
+      return`<div class="card" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">${u?avatar(u):""}<div><div style="font-size:11px;color:var(--muted)">${s.date}</div><div style="font-size:13px;font-weight:700">${u?.name}</div></div></div>
+        <div style="font-size:12px;color:var(--sub)">${st?.name}</div>
+      </div>`;
+    }).join("")}
+    <div class="section-label">日報 (${rs.length})</div>
+    ${rs.map(r=>{
+      const u=USERS.find(u=>u.email===r.uid);
+      const c=getC(u?.color||"sky");
+      return`<div class="card" style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <div style="font-size:11px;color:var(--muted)">${r.date}</div>
+          <div style="font-size:12px;font-weight:700;color:${c.bg}">${u?.name}</div>
+        </div>
+        <div style="display:flex;gap:10px;font-size:12px;font-weight:700">
+          <span style="color:var(--em)">新規 ${r.new_}</span>
+          <span style="color:var(--sky)">MNP ${r.mnp}</span>
+          <span style="color:#F97316">BB ${r.bb}</span>
+        </div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+// ── SHIFTS ────────────────────────────────────────────────────
+function renderShifts(){
+  const emps=USERS.filter(u=>u.role==="Employee");
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const cells=[];
+  for(let i=0;i<firstDay;i++) cells.push(null);
+  for(let d=1;d<=daysInMonth;d++) cells.push(d);
+
+  let detailHTML="";
+  if(calSelDate!==null){
+    const ds=ymd(calYear,calMonth,calSelDate);
+    const dayShifts=shifts.filter(s=>s.date===ds);
+    detailHTML=`<div style="padding:0 16px;margin-top:8px">
+      <div style="font-size:13px;font-weight:800;color:var(--txt);margin-bottom:8px">${calMonth+1}月${calSelDate}日 <span style="font-size:12px;font-weight:500;color:var(--muted)">${dayShifts.length} 件</span></div>
+      ${dayShifts.length===0?`<div style="text-align:center;font-size:13px;color:var(--muted);padding:16px;background:#F8FDFE;border-radius:14px">シフトなし</div>`
+      :dayShifts.map(s=>{
+        const u=USERS.find(u=>u.email===s.uid);
+        const p=projects.find(p=>p.id===s.projId);
+        const st=STORES.find(st=>st.id===s.storeId);
+        const c=getC(u?.color||"sky");
+        const isHol=s.type==="公休";
+        return`<div class="shift-bar" style="background:${isHol?"#F1F5F9":c.light};margin-bottom:8px">
+          <div>
+            <div style="font-size:14px;font-weight:800;color:${isHol?"var(--muted)":c.text}">${u?.name} ${isHol?"（公休）":""}</div>
+            ${!isHol?`<div style="font-size:12px;color:var(--sub);margin-top:2px">${p?.name}</div><div style="font-size:11px;color:var(--muted)">${st?.name}</div>`:""}
+          </div>
+          <button onclick="deleteShift('${s.id}')" style="background:none;border:none;cursor:pointer;color:#CBD5E1;padding:4px">${ICO.x}</button>
+        </div>`;
+      }).join("")}
+    </div>`;
+  }
+
+  return`
+  <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div><div class="eyebrow">シフト管理</div><h1 style="font-size:20px">${calYear}年 ${calMonth+1}月</h1></div>
+      <button class="fab" onclick="openShiftModal()">${ICO.plus}</button>
+    </div>
+  </div>
+  <div style="padding:0 16px;margin-top:-30px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <button onclick="calPrev()" style="background:var(--sky-l);border:none;border-radius:10px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sky)">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+      </button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+        ${emps.map(u=>{const c=getC(u.color);return`<div style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:3px;border-radius:2px;background:${c.bar}"></div><span style="font-size:11px;font-weight:600;color:var(--sub)">${u.name}</span></div>`;}).join("")}
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:3px;border-radius:2px;background:#CBD5E1"></div><span style="font-size:11px;font-weight:600;color:var(--muted)">公休</span></div>
+      </div>
+      <button onclick="calNext()" style="background:var(--sky-l);border:none;border-radius:10px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sky)">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+      </button>
+    </div>
+    <div class="week-hdr">
+      ${WDAYS.map((w,i)=>`<span class="${i===0?"sun":i===6?"sat":""}">${w}</span>`).join("")}
+    </div>
+    <div class="cal-grid" id="cal-grid">
+      ${cells.map((d,i)=>{
+        if(!d) return`<div style="background:#fff;min-height:50px"></div>`;
+        const ds=ymd(calYear,calMonth,d);
+        const dow=new Date(calYear,calMonth,d).getDay();
+        const isToday=ds===TODAY;
+        const isSel=calSelDate===d;
+        const dayShifts=shifts.filter(s=>s.date===ds);
+        const byStaff={};
+        dayShifts.forEach(s=>{if(!byStaff[s.uid])byStaff[s.uid]=s.type;});
+        const bars=Object.entries(byStaff).slice(0,3).map(([uid,type])=>{
+          const u=USERS.find(u=>u.email===uid);
+          const c=getC(u?.color||"sky");
+          return`<div class="cal-bar" style="background:${type==="公休"?"#CBD5E1":c.bar}"></div>`;
+        }).join("");
+        return`<div class="cal-day-cell${isSel?" selected":""}" onclick="calSelect(${d})">
+          <div class="cal-day-num${isToday?" today":dow===0?" sun":dow===6?" sat":""}">${d}</div>
+          <div class="cal-bars">${bars}${Object.keys(byStaff).length>3?`<div style="font-size:8px;color:var(--muted);text-align:center">+${Object.keys(byStaff).length-3}</div>`:""}</div>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>
+  ${detailHTML}`;
+}
+
+function mountShiftCalendar(){}
+function calPrev(){if(calMonth===0){calYear--;calMonth=11;}else calMonth--;calSelDate=null;render();}
+function calNext(){if(calMonth===11){calYear++;calMonth=0;}else calMonth++;calSelDate=null;render();}
+function calSelect(d){calSelDate=calSelDate===d?null:d;render();}
+function deleteShift(id){shifts=shifts.filter(s=>s.id!==id);render();showToast("シフトを削除しました");}
+
+function openShiftModal(){
+  const emps=USERS.filter(u=>u.role==="Employee");
+  const activeProjs=projects.filter(p=>p.status==="稼働中");
+  let formState={type:"勤務",uid:"",start:TODAY,end:TODAY,projId:"",storeId:"",excl:[]};
+  openModal(`
+  <div class="modal-header"><h2>シフト登録</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
+  <div class="modal-body">
+    <div class="field"><label>スタッフ</label>
+      <select id="sf-uid"><option value="">選択してください</option>${emps.map(u=>`<option value="${u.email}">${u.name}</option>`).join("")}</select>
+    </div>
+    <div style="margin-bottom:14px"><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px;letter-spacing:.04em">種別</label>
+      <div class="toggle-row">
+        <button id="sf-t-work" class="active" onclick="sfSetType('勤務',this)">勤務</button>
+        <button id="sf-t-hol" onclick="sfSetType('公休',this)">公休</button>
+      </div>
+    </div>
+    <div style="margin-bottom:14px"><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px;letter-spacing:.04em">期間</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="date" id="sf-start" value="${TODAY}" style="flex:1;border:1.5px solid var(--border);border-radius:12px;padding:11px 12px;font-size:14px;font-family:inherit;background:#FAFEFF;outline:none">
+        <span style="color:var(--muted);font-weight:700">〜</span>
+        <input type="date" id="sf-end" value="${TODAY}" style="flex:1;border:1.5px solid var(--border);border-radius:12px;padding:11px 12px;font-size:14px;font-family:inherit;background:#FAFEFF;outline:none">
+      </div>
+    </div>
+    <div id="sf-excl-wrap" style="margin-bottom:14px">
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px;letter-spacing:.04em">除外する曜日</label>
+      <div style="display:flex;gap:4px">${WDAYS.map((w,i)=>`<button class="wday-exc on${i===0?" sun":i===6?" sat":""}" id="sfwd-${i}" onclick="sfToggleDay(${i})">${w}</button>`).join("")}</div>
+    </div>
+    <div id="sf-proj-wrap">
+      <div class="field"><label>案件</label>
+        <select id="sf-proj" onchange="sfProjChange()"><option value="">選択してください</option>${activeProjs.map(p=>`<option value="${p.id}">${p.name}</option>`).join("")}</select>
+      </div>
+      <div class="field"><label>店舗</label><select id="sf-store"><option value="">案件を先に選択</option></select></div>
+    </div>
+    <div id="sf-preview" class="range-preview" style="display:none"><span class="rp-label">登録予定日数</span><span class="rp-val" id="sf-count">0</span></div>
+    <button class="btn btn-primary btn-full" id="sf-save" onclick="saveShift()">登録する</button>
+  </div>`,()=>{
+    document.getElementById("sf-start").addEventListener("input",sfUpdatePreview);
+    document.getElementById("sf-end").addEventListener("input",sfUpdatePreview);
+    sfUpdatePreview();
+  });
+}
+
+let sfExcl=[];
+let sfType="勤務";
+function sfSetType(t,btn){
+  sfType=t;
+  document.querySelectorAll(".toggle-row button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("sf-excl-wrap").style.display=t==="公休"?"none":"";
+  document.getElementById("sf-proj-wrap").style.display=t==="公休"?"none":"";
+  sfUpdatePreview();
+}
+function sfToggleDay(i){
+  const btn=document.getElementById("sfwd-"+i);
+  if(sfExcl.includes(i)){sfExcl=sfExcl.filter(d=>d!==i);btn.classList.remove("off");}
+  else{sfExcl.push(i);btn.classList.add("off");}
+  sfUpdatePreview();
+}
+function sfUpdatePreview(){
+  const s=document.getElementById("sf-start")?.value;
+  const e=document.getElementById("sf-end")?.value;
+  if(!s||!e||e<s){document.getElementById("sf-preview").style.display="none";return;}
+  let cnt=0;
+  for(let d=new Date(s);d<=new Date(e);d.setDate(d.getDate()+1)){
+    if(!sfExcl.includes(d.getDay())) cnt++;
+  }
+  document.getElementById("sf-preview").style.display="flex";
+  document.getElementById("sf-count").textContent=cnt;
+}
+function sfProjChange(){
+  const pid=document.getElementById("sf-proj").value;
+  const stores=STORES.filter(s=>s.projId===pid);
+  const sel=document.getElementById("sf-store");
+  sel.innerHTML=`<option value="">選択してください</option>${stores.map(s=>`<option value="${s.id}">${s.name}</option>`).join("")}`;
+}
+function saveShift(){
+  const uid=document.getElementById("sf-uid").value;
+  const start=document.getElementById("sf-start").value;
+  const end=document.getElementById("sf-end").value;
+  const projId=sfType==="公休"?"":document.getElementById("sf-proj")?.value||"";
+  const storeId=sfType==="公休"?"":document.getElementById("sf-store")?.value||"";
+  if(!uid||!start||!end) return;
+  if(sfType==="勤務"&&(!projId||!storeId)) return;
+  const newShifts=[];
+  for(let d=new Date(start);d<=new Date(end);d.setDate(d.getDate()+1)){
+    if(sfType==="勤務"&&sfExcl.includes(d.getDay())) continue;
+    const ds=d.toISOString().slice(0,10);
+    if(!shifts.some(s=>s.date===ds&&s.uid===uid&&s.type===sfType)) {
+      newShifts.push({id:`SH${Date.now()}_${d.getDate()}`,date:ds,uid,projId,storeId,type:sfType});
+    }
+  }
+  shifts=[...shifts,...newShifts];
+  sfExcl=[];sfType="勤務";
+  // GASに保存
+  newShifts.forEach(s => gasPost("addShift", s));
+  closeModal();render();showToast(`${newShifts.length} 件登録しました`);
+}
+
+// ── REPORTS ───────────────────────────────────────────────────
+let reportFilter="全て";
+function renderReports(){
+  const isAdmin=currentUser.role==="Admin";
+  const myR=isAdmin?reports:reports.filter(r=>r.uid===currentUser.email);
+  return`
+  <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div><div class="eyebrow">日報</div><h1 style="font-size:20px">${myR.length} 件</h1></div>
+      ${!isAdmin?`<button class="fab" onclick="openReportModal()">${ICO.plus}</button>`:""}
+    </div>
+  </div>
+  <div style="padding:0 16px 24px;margin-top:-30px">
+    ${myR.map(r=>{
+      const u=USERS.find(u=>u.email===r.uid);
+      const p=projects.find(p=>p.id===r.projId);
+      const st=STORES.find(s=>s.id===r.storeId);
+      const c=getC(u?.color||"sky");
+      return`<div class="card clickable" style="margin-bottom:8px" onclick="openReportDetail('${r.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-size:11px;color:var(--muted)">${r.date}</div>
+            ${isAdmin?`<div style="font-size:12px;font-weight:700;color:${c.bg}">${u?.name}</div>`:""}
+            <div style="font-size:14px;font-weight:800;line-height:1.3">${p?.name}</div>
+            <div style="font-size:12px;color:var(--sub)">${st?.name}</div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);white-space:nowrap">${r.in} 〜 ${r.out}</div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid var(--border);padding-top:8px">
+          <span style="font-size:12px;font-weight:700;color:var(--em)">新規 ${r.new_}</span>
+          <span style="font-size:12px;font-weight:700;color:var(--sky)">MNP ${r.mnp}</span>
+          <span style="font-size:12px;font-weight:700;color:#F97316">BB ${r.bb}</span>
+          <span style="font-size:12px;font-weight:700;color:#F59E0B">でんき ${r.elec}</span>
+          <span style="font-size:12px;font-weight:700;color:#EC4899">カード ${r.card}</span>
+          <span style="font-size:12px;font-weight:700;color:#8B5CF6">上位 ${r.uc}</span>
+        </div>
+        <div style="font-size:11px;color:var(--sky);margin-top:6px;display:flex;align-items:center;gap:4px">${ICO.eye} 詳細を見る</div>
+      </div>`;
+    }).join("")}
+    ${myR.length===0?`<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:14px">日報がありません</div>`:""}
+  </div>`;
+}
+
+function openReportDetail(id){
+  const r=reports.find(r=>r.id===id);
+  const u=USERS.find(u=>u.email===r.uid);
+  const p=projects.find(p=>p.id===r.projId);
+  const st=STORES.find(s=>s.id===r.storeId);
+  const c=getC(u?.color||"sky");
+  openModal(`
+  <div class="modal-header"><h2>日報詳細</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
+  <div class="modal-body">
+    <div class="info-table">
+      <div class="info-row"><span class="key">日付</span><span class="val">${r.date}</span></div>
+      <div class="info-row"><span class="key">スタッフ</span><span class="val" style="color:${c.bg}">${u?.name}</span></div>
+      <div class="info-row"><span class="key">案件</span><span class="val">${p?.name}</span></div>
+      <div class="info-row"><span class="key">店舗</span><span class="val">${st?.name}</span></div>
+      <div class="info-row"><span class="key">勤務時間</span><span class="val">${r.in} 〜 ${r.out}</span></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">実績</div>
+    <div class="perf-grid" style="grid-template-columns:repeat(3,1fr)">
+      ${[["新規",r.new_,"var(--em)"],["MNP",r.mnp,"var(--sky)"],["BB",r.bb,"#F97316"],["でんき",r.elec,"#F59E0B"],["カード",r.card,"#EC4899"],["上位キャリア",r.uc,"#8B5CF6"]].map(([l,v,col])=>`
+      <div class="perf-cell"><div class="pc-label">${l}</div><div class="pc-val" style="color:${col}">${v}</div><div class="pc-unit">件</div></div>`).join("")}
+    </div>
+
+    <div style="background:#F8FDFE;border-radius:12px;padding:12px;display:flex;justify-content:space-between;margin-bottom:14px">
+      <span style="font-size:12px;color:var(--sub);font-weight:600">アクセサリー売上</span>
+      <span style="font-size:15px;font-weight:800">¥${fmt(r.acc)}</span>
+    </div>
+    ${r.others?.length?`
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">その他商材</div>
+    ${r.others.map(o=>`<div style="background:#F8FDFE;border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:13px">${o.name}</span><span style="font-size:13px;font-weight:700">${o.cnt} 件</span>
+    </div>`).join("")}`:""}
+    ${r.note?`<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin:14px 0 8px">コメント</div>
+    <div style="background:#F8FDFE;border-radius:12px;padding:12px;font-size:13px;line-height:1.6">${r.note}</div>`:""}
+  </div>`);
+}
+
+let reportOthers=[];
+function openReportModal(){
+  const todayS=shifts.find(s=>s.uid===currentUser.email&&s.date===TODAY&&s.type==="勤務");
+  const proj=todayS?projects.find(p=>p.id===todayS.projId):null;
+  const store=todayS?STORES.find(s=>s.id===todayS.storeId):null;
+  reportOthers=[];
+  openModal(`
+  <div class="modal-header"><h2>日報提出</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
+  <div class="modal-body">
+    ${todayS?`<div style="background:var(--sky-l);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--sky-d)">
+      <strong>本日のシフト:</strong> ${proj?.name} / ${store?.name}</div>`
+    :`<div class="alert-banner alert-amber" style="margin-bottom:14px">${ICO.bell}<span style="font-size:12px">本日のシフトが見つかりません</span></div>`}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="field" style="margin:0"><label>出勤時刻</label><input type="time" id="rp-in"></div>
+      <div class="field" style="margin:0"><label>退勤時刻</label><input type="time" id="rp-out"></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">実績入力</div>
+    <div class="num-grid">
+      ${[["新規契約","rp-new"],["MNP","rp-mnp"],["BB","rp-bb"],["でんき","rp-elec"],["カード","rp-card"],["上位キャリア","rp-uc"]].map(([l,id])=>`
+      <div class="num-cell"><label>${l}</label><input type="number" id="${id}" value="0" min="0"></div>`).join("")}
+    </div>
+    <div class="field"><label>アクセサリー売上 (円)</label><input type="number" id="rp-acc" value="0" min="0" style="text-align:left"></div>
+    <div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <label style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.04em">その他商材</label>
+        <button onclick="addOtherItem()" style="background:var(--sky-l);border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--sky);cursor:pointer;display:flex;align-items:center;gap:4px">${ICO.plus} 追加</button>
+      </div>
+      <div id="rp-others"></div>
+    </div>
+    <div class="field"><label>コメント</label><textarea id="rp-note" rows="3" placeholder="本日の所感・気づきなど"></textarea></div>
+    <button class="btn btn-primary btn-full" onclick="saveReport('${todayS?.projId||""}','${todayS?.storeId||""}')">提出する</button>
+  </div>`);
+}
+function addOtherItem(){
+  const i=reportOthers.length;
+  reportOthers.push({name:"",cnt:0});
+  const wrap=document.getElementById("rp-others");
+  const div=document.createElement("div");
+  div.className="other-item-row";
+  div.id=`ro-${i}`;
+  div.innerHTML=`<input type="text" placeholder="商材名" oninput="reportOthers[${i}].name=this.value" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit;background:#FAFEFF;outline:none">
+    <input type="number" min="0" value="0" oninput="reportOthers[${i}].cnt=+this.value" style="width:60px;border:1.5px solid var(--border);border-radius:10px;padding:10px 8px;font-size:13px;text-align:center;font-family:inherit;background:#FAFEFF;outline:none">
+    <span style="font-size:12px;color:var(--muted)">件</span>
+    <button onclick="reportOthers[${i}]=null;document.getElementById('ro-${i}').remove()" style="background:none;border:none;cursor:pointer;color:#CBD5E1">${ICO.x}</button>`;
+  wrap.appendChild(div);
+}
+function saveReport(projId,storeId){
+  const inT=document.getElementById("rp-in").value;
+  const outT=document.getElementById("rp-out").value;
+  if(!inT||!outT){showToast("出勤・退勤時刻を入力してください");return;}
+  const newR={
+    id:`R${Date.now()}`,date:TODAY,uid:currentUser.email,projId,storeId,
+    in:inT,out:outT,
+    new_:+document.getElementById("rp-new").value,
+    mnp: +document.getElementById("rp-mnp").value,
+    bb:  +document.getElementById("rp-bb").value,
+    elec:+document.getElementById("rp-elec").value,
+    card:+document.getElementById("rp-card").value,
+    uc:  +document.getElementById("rp-uc").value,
+    others:reportOthers.filter(Boolean),
+    acc: +document.getElementById("rp-acc").value,
+    note:document.getElementById("rp-note").value,
+  };
+  reports=[newR,...reports];
+  reportOthers=[];
+  gasPost("addReport", newR);
+  closeModal();render();showToast("日報を提出しました");
+}
+
+// ── EXPENSES ──────────────────────────────────────────────────
+let expFilter="全て";
+function renderExpenses(){
+  const isAdmin=currentUser.role==="Admin";
+  const myE=isAdmin?expenses:expenses.filter(e=>e.uid===currentUser.email);
+  const filters=["全て","申請中","承認","差戻し","案件外"];
+  let filtered=myE;
+  if(expFilter==="案件外") filtered=myE.filter(e=>!e.projId);
+  else if(expFilter!=="全て") filtered=myE.filter(e=>e.status===expFilter);
+  const total=filtered.reduce((a,e)=>a+(+e.amt),0);
+  const pendingCnt=myE.filter(e=>e.status==="申請中").length;
+  return`
+  <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div><div class="eyebrow">経費</div><h1 style="font-size:20px">精算管理</h1></div>
+      ${!isAdmin?`<button class="fab" onclick="openExpModal()">${ICO.plus}</button>`:""}
+    </div>
+  </div>
+  <div style="padding:0 16px 24px;margin-top:-30px">
+    <div class="pill-row" style="margin-bottom:10px">
+      ${filters.map(f=>`<button class="pill${expFilter===f?" active":""}" onclick="expFilter='${f}';render()">
+        ${f}${f==="申請中"&&pendingCnt>0?`<span style="margin-left:4px;background:#F59E0B;color:#fff;font-size:10px;border-radius:100px;padding:1px 5px">${pendingCnt}</span>`:""}
+      </button>`).join("")}
+    </div>
+    <div class="sum-bar"><span class="s-count">${filtered.length} 件</span><span class="s-total">合計 ¥${fmt(total)}</span></div>
+    ${filtered.map(e=>{
+      const u=USERS.find(u=>u.email===e.uid);
+      const p=projects.find(pp=>pp.id===e.projId);
+      const c=getC(u?.color||"sky");
+      return`<div class="card clickable" style="margin-bottom:8px" onclick="openExpDetail('${e.id}')">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+          <div style="flex:1;min-width:0;margin-right:8px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+              <span style="font-size:11px;color:var(--muted)">${e.date}</span>
+              ${!e.projId?`<span class="badge badge-purple">案件外</span>`:""}
+            </div>
+            ${isAdmin?`<div style="font-size:12px;font-weight:700;color:${c.bg}">${u?.name}</div>`:""}
+            <div style="font-size:14px;font-weight:700">${e.note}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+              ${e.cat?`<span class="badge badge-gray">${e.cat}</span>`:""}
+              ${p?`<span style="font-size:11px;color:var(--muted)">${p.name}</span>`:""}
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:16px;font-weight:900">¥${fmt(+e.amt)}</div>
+            ${statusBadge(e.status)}
+          </div>
+        </div>
+        ${e.receiptURL?`<div style="font-size:11px;color:var(--em);display:flex;align-items:center;gap:4px;margin-top:4px">${ICO.check} 領収書あり（Drive保存済）</div>`:""}
+        <div style="font-size:11px;color:var(--sky);margin-top:4px;display:flex;align-items:center;gap:4px">${ICO.eye} 詳細を見る</div>
+      </div>`;
+    }).join("")}
+    ${filtered.length===0?`<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:14px">該当する経費がありません</div>`:""}
+  </div>`;
+}
+
+function openExpDetail(id){
+  const e=expenses.find(e=>e.id===id);
+  const u=USERS.find(u=>u.email===e.uid);
+  const p=projects.find(pp=>pp.id===e.projId);
+  const isAdmin=currentUser.role==="Admin";
+  openModal(`
+  <div class="modal-header"><h2>経費詳細</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
+  <div class="modal-body">
+    <div class="info-table">
+      <div class="info-row"><span class="key">申請者</span><span class="val">${u?.name}</span></div>
+      <div class="info-row"><span class="key">日付</span><span class="val">${e.date}</span></div>
+      <div class="info-row"><span class="key">内容</span><span class="val">${e.note}</span></div>
+      <div class="info-row"><span class="key">カテゴリ</span><span class="val">${e.cat}</span></div>
+      <div class="info-row"><span class="key">案件</span><span class="val">${p?.name||"案件外"}</span></div>
+      <div class="info-row"><span class="key">金額</span><span class="val" style="font-size:18px;font-weight:900">¥${fmt(+e.amt)}</span></div>
+      <div class="info-row"><span class="key">状態</span><span class="val">${statusBadge(e.status)}</span></div>
+    </div>
+    ${e.receiptPreview?`
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">領収書</div>
+    <div class="receipt-preview" style="margin-bottom:14px">
+      <img src="${e.receiptPreview}" alt="領収書"/>
+      <div class="receipt-overlay">
+        <span style="color:rgba(255,255,255,.8);font-size:12px">Drive に保存済み ✓</span>
+      </div>
+    </div>`:`<div style="background:#F8FDFE;border-radius:12px;padding:14px;text-align:center;font-size:13px;color:var(--muted);margin-bottom:14px">領収書なし</div>`}
+    ${isAdmin&&e.status==="申請中"?`
+    <div style="display:flex;gap:10px">
+      <button onclick="approveExp('${e.id}')" class="btn btn-success" style="flex:1;justify-content:center">${ICO.check} 承認</button>
+      <button onclick="rejectExp('${e.id}')" class="btn btn-danger" style="flex:1;justify-content:center">${ICO.x} 差戻し</button>
+    </div>`:""}
+  </div>`);
+}
+function approveExp(id){expenses=expenses.map(e=>e.id===id?{...e,status:"承認"}:e);gasPost("updateExpenseStatus",{id,status:"承認"});closeModal();render();showToast("承認しました");}
+function rejectExp(id) {expenses=expenses.map(e=>e.id===id?{...e,status:"差戻し"}:e);gasPost("updateExpenseStatus",{id,status:"差戻し"});closeModal();render();showToast("差し戻しました");}
+
+let expReceiptData=null;
+let epIsOther=false;
+function openExpModal(){
+  expReceiptData=null; epIsOther=false;
+  const activeProjs=projects.filter(p=>p.status==="稼働中");
+  openModal(`
+  <div class="modal-header"><h2>経費申請</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
+  <div class="modal-body">
+    <div class="field"><label>日付</label><input type="date" id="ep-date" value="${TODAY}"></div>
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px">紐付け先</label>
+      <div class="toggle-row">
+        <button class="active" onclick="epToggle(false,this)">案件に紐付ける</button>
+        <button onclick="epToggle(true,this)">案件外</button>
+      </div>
+    </div>
+    <div id="ep-proj-wrap" class="field"><label>案件</label>
+      <select id="ep-proj"><option value="">選択してください</option>${activeProjs.map(p=>`<option value="${p.id}">${p.name}</option>`).join("")}</select>
+    </div>
+    <div class="field"><label>カテゴリ</label>
+      <select id="ep-cat"><option value="">選択してください</option>${EXP_CATS.map(c=>`<option value="${c}">${c}</option>`).join("")}</select>
+    </div>
+    <div class="field"><label>金額 (円)</label><input type="number" id="ep-amt" min="0" placeholder="例: 1200"></div>
+    <div class="field"><label>内容</label><input type="text" id="ep-note" placeholder="例: 交通費（渋谷往復）"></div>
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px">領収書 <span style="color:var(--muted);font-weight:400">→ 管理者の Google Drive に保存</span></label>
+      <div id="ep-receipt-area">
+        <label class="receipt-upload" for="ep-file">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:32px;height:32px;color:var(--muted);margin-bottom:6px"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z"/></svg>
+          <div style="font-size:13px;color:var(--sub);font-weight:600">カメラ撮影 / ギャラリーから選択</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">管理者の Google Drive に自動保存</div>
+        </label>
+        <input type="file" id="ep-file" accept="image/*" capture="environment" style="display:none" onchange="epHandleFile(this)">
+      </div>
+      <div id="ep-warn" class="alert-banner alert-amber" style="margin-top:8px;margin-bottom:0">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:#F59E0B;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9.303 3.376c.866 1.5-.217 3.374-1.948 3.374H4.645c-1.73 0-2.813-1.874-1.948-3.374L10.051 3.378c.866-1.5 3.032-1.5 3.898 0L21.303 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
+        <span style="font-size:12px">領収書の添付を推奨します（税理士提出用）</span>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveExp()">申請する</button>
+  </div>`);
+}
+function epToggle(isOther,btn){
+  epIsOther=isOther;
+  document.querySelectorAll(".toggle-row button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  const w=document.getElementById("ep-proj-wrap");
+  if(w) w.style.display=isOther?"none":"";
+}
+function epHandleFile(input){
+  const file=input.files?.[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    expReceiptData={preview:e.target.result,url:`https://drive.google.com/file/d/drive_${Date.now()}/view`};
+    document.getElementById("ep-receipt-area").innerHTML=`<div class="receipt-preview">
+      <img src="${expReceiptData.preview}" style="width:100%;height:140px;object-fit:cover;display:block"/>
+      <div class="receipt-overlay"><span style="color:rgba(255,255,255,.8);font-size:12px">Drive に保存済み ✓</span>
+      <button onclick="expReceiptData=null;document.getElementById('ep-receipt-area').innerHTML='<div style=\\'text-align:center;padding:16px;color:var(--muted);font-size:13px\\'>削除しました</div>'" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.7);font-size:12px">削除</button>
+      </div></div>`;
+    const w=document.getElementById("ep-warn"); if(w) w.style.display="none";
+  };
+  reader.readAsDataURL(file);
+}
+function saveExp(){
+  const projId=epIsOther?null:(document.getElementById("ep-proj")?.value||null);
+  const cat=document.getElementById("ep-cat")?.value;
+  const amt=document.getElementById("ep-amt")?.value;
+  const note=document.getElementById("ep-note")?.value;
+  if((!epIsOther&&!projId)||!cat||!amt||!note){showToast("必須項目を入力してください");return;}
+  expenses=[{
+    id:`E${Date.now()}`,uid:currentUser.email,
+    date:document.getElementById("ep-date").value,
+    projId:projId||null,cat,amt:+amt,note,status:"申請中",
+    receiptURL:expReceiptData?.url||null,
+    receiptPreview:expReceiptData?.preview||null,
+  },...expenses];
+  epIsOther=false;
+  // GASに保存
+  const savedReceipt = expReceiptData;
+  expReceiptData=null;
+  gasPost("addExpense", expenses[0]).then(async () => {
+    if (savedReceipt?.preview) {
+      const res = await gasPost("uploadReceipt", {
+        base64: savedReceipt.preview,
+        fileName: `receipt_${expenses[0].id}.jpg`,
+        expenseId: expenses[0].id,
+      });
+      if (res?.url) {
+        expenses = expenses.map(e => e.id===expenses[0].id ? {...e, receiptURL: res.url} : e);
+      }
+    }
+  });
+  closeModal();render();showToast("経費を申請しました");
+}
+
+// ── CLIENT / PROJECT ADD ──────────────────────────────────────
+function openAddClient(){
+  openModal(`
+  <div class="modal-header"><h2>クライアント追加</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
+  <div class="modal-body">
+    <div class="field"><label>会社名</label><input type="text" id="cl-co" placeholder="例: ドコモショップ 新橋店"></div>
+    <div class="field"><label>担当者名</label><input type="text" id="cl-ct" placeholder="例: 田中 太郎"></div>
+    <div class="field"><label>電話番号</label><input type="tel" id="cl-tel" placeholder="03-0000-0000"></div>
+    <div class="field"><label>メールアドレス</label><input type="email" id="cl-mail" placeholder="example@company.jp"></div>
+    <button class="btn btn-primary btn-full" onclick="saveClient()">追加する</button>
+  </div>`);
+}
+function saveClient(){
+  const co=document.getElementById("cl-co").value;
+  const ct=document.getElementById("cl-ct").value;
+  if(!co||!ct){showToast("会社名と担当者名は必須です");return;}
+  const newClient = {id:`C${Date.now()}`,company:co,contact:ct,
+    tel:document.getElementById("cl-tel").value,
+    mail:document.getElementById("cl-mail").value};
+  clients=[...clients,newClient];
+  gasPost("addClient", newClient);
+  closeModal();render();showToast("クライアントを追加しました");
+}
+
+function openAddProject(){
+  openModal(`
+  <div class="modal-header"><h2>案件追加</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
+  <div class="modal-body">
+    <div class="field"><label>案件名</label><input type="text" id="pj-name" placeholder="例: ドコモ新橋 夏季キャンペーン"></div>
+    <div class="field"><label>取引先</label>
+      <select id="pj-client"><option value="">選択してください</option>${clients.map(c=>`<option value="${c.id}">${c.company}</option>`).join("")}</select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="field" style="margin:0"><label>開始日</label><input type="date" id="pj-start"></div>
+      <div class="field" style="margin:0"><label>終了日</label><input type="date" id="pj-end"></div>
+    </div>
+    <div class="field"><label>単価 (円)</label><input type="number" id="pj-price" placeholder="例: 150000"></div>
+    <div class="field"><label>ステータス</label>
+      <select id="pj-status">
+        <option value="商談中">商談中</option><option value="契約済">契約済</option>
+        <option value="稼働中">稼働中</option><option value="終了">終了</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveProject()">追加する</button>
+  </div>`);
+}
+function saveProject(){
+  const name=document.getElementById("pj-name").value;
+  const clientId=document.getElementById("pj-client").value;
+  const start=document.getElementById("pj-start").value;
+  if(!name||!clientId||!start){showToast("案件名・取引先・開始日は必須です");return;}
+  const newProj = {
+    id:`P${Date.now()}`,name,clientId,start,
+    end:document.getElementById("pj-end").value,
+    price:+(document.getElementById("pj-price").value)||0,
+    status:document.getElementById("pj-status").value
+  };
+  projects=[...projects,newProj];
+  gasPost("addProject", newProj);
+  closeModal();render();showToast("案件を追加しました");
+}
+
+// ── BOOT ─────────────────────────────────────────────────────
+(async () => {
+  // ローディング画面
+  document.getElementById("app").innerHTML = `
+    <div style="min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--header-grad)">
+      <div style="font-size:36px;font-weight:900;color:#fff;margin-bottom:12px;letter-spacing:-.02em">BIZFLOW</div>
+      <div style="width:40px;height:40px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite"></div>
+      <div style="color:rgba(255,255,255,.7);font-size:13px;margin-top:16px">データを読み込み中...</div>
+    </div>`;
+
+  loadMockDynamic(); // まずモックで初期化（GAS未設定時のフォールバック）
+  try {
+    const loaded = await loadAllData(); // GAS設定済みなら全データ上書き
+    if (!loaded) console.info("GAS未設定のためモックデータを使用");
+  } catch(e) {
+    console.warn("GASデータ読み込み失敗、モックを使用:", e);
+  }
+
+  dataReady = true;
+  render();
+})();
+</script>
+</body>
+</html>
