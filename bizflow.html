@@ -1186,6 +1186,7 @@ function renderShifts(){
     </div>` : "";
 
   return`
+  <button class="fab-fixed" onclick="startCalRegMode()">${ICO.plus}</button>
   <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div><div class="eyebrow">シフト管理</div><h1 style="font-size:20px">${calYear}年 ${calMonth+1}月</h1></div>
@@ -1440,6 +1441,7 @@ function renderReports(){
   const isAdmin=currentUser.role==="Admin";
   const myR=isAdmin?reports:reports.filter(r=>r.uid===currentUser.email);
   return`
+  <button class="fab-fixed" onclick="openReportModal()">${ICO.plus}</button>
   <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div><div class="eyebrow">日報</div><h1 style="font-size:20px">${myR.length} 件</h1></div>
@@ -1626,6 +1628,7 @@ function renderExpenses(){
   const total=filtered.reduce((a,e)=>a+(+e.amt),0);
   const pendingCnt=myE.filter(e=>e.status==="申請中").length;
   return`
+  <button class="fab-fixed" onclick="openExpModal()">${ICO.plus}</button>
   <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div><div class="eyebrow">経費</div><h1 style="font-size:20px">精算管理</h1></div>
