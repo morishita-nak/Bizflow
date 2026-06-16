@@ -25,6 +25,11 @@ body{
   -webkit-font-smoothing:antialiased;
   overflow-x:hidden;
 }
+/* ページ先頭のグラデ背景（ナビ＋ヘッダー分） */
+.page-bg-grad{
+  background:var(--header-grad);
+  position:relative;
+}
 
 /* ── DESIGN TOKENS ── */
 :root{
@@ -55,14 +60,14 @@ body{
 }
 .screen{
   padding-top:calc(var(--nav-h) + env(safe-area-inset-top));
-  padding-bottom:env(safe-area-inset-bottom);
+  padding-bottom:calc(env(safe-area-inset-bottom) + 16px);
   min-height:100dvh;
 }
 
 /* ── HEADER WAVE ── */
 .page-header{
   background:var(--header-grad);
-  padding:18px 20px 20px;
+  padding:14px 20px 16px;
   position:relative;
   overflow:hidden;
 }
@@ -98,30 +103,46 @@ body{
   transform:translateX(-50%);
   width:100%;
   max-width:430px;
-  height:calc(var(--nav-h) + env(safe-area-inset-top));
-  padding-top:env(safe-area-inset-top);
-  background:#fff;
-  border-bottom:1px solid var(--border);
-  display:flex;
   z-index:100;
-  box-shadow:0 2px 12px rgba(14,165,233,.08);
+  background:var(--header-grad);
+  display:flex;
+  flex-direction:column;
+}
+/* ステータスバー分のスペーサー */
+.bottom-nav::before{
+  content:'';
+  display:block;
+  height:env(safe-area-inset-top);
+  background:transparent;
+}
+/* タブ行 */
+.nav-tabs{
+  display:flex;
+  height:var(--nav-h);
 }
 .nav-btn{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:1px;border:none;background:none;cursor:pointer;
-  color:var(--muted);transition:color .15s;
+  color:rgba(255,255,255,.6);transition:all .15s;
   padding:4px 0;
+  position:relative;
 }
 .nav-btn svg{width:20px;height:20px;stroke-width:1.8}
 .nav-btn span{font-size:9px;font-weight:700;letter-spacing:.02em}
+.nav-btn.active{color:#fff;}
+.nav-btn.active::after{
+  content:'';
+  position:absolute;
+  bottom:0;left:50%;transform:translateX(-50%);
+  width:24px;height:3px;
+  background:#fff;
+  border-radius:2px 2px 0 0;
+}
 .nav-btn.active{color:var(--sky)}
 .nav-btn svg{width:22px;height:22px;stroke-width:1.8}
 .nav-btn span{font-size:10px;font-weight:700;letter-spacing:.02em}
-.nav-btn.active{
-  color:var(--sky);
-}
 .nav-btn.active .nav-icon-wrap{
-  background:var(--sky-l);
+  background:rgba(255,255,255,.15);
   border-radius:8px;
   padding:3px 10px 2px;
 }
@@ -637,11 +658,11 @@ function render(){
     {id:"expenses", label:"経費",    icon:'<svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0c1.1.128 1.907 1.077 1.907 2.185Z"/></svg>'},
   ];
   const tabs=isAdmin?adminTabs:empTabs;
-  const navHTML=`<nav class="bottom-nav">${tabs.map(t=>`
+  const navHTML=`<nav class="bottom-nav"><div class="nav-tabs">${tabs.map(t=>`
     <button class="nav-btn${(detailProject?"":currentTab)===t.id?" active":""}" onclick="goTab('${t.id}')">
       <div class="nav-icon-wrap">${t.icon}</div>
       <span>${t.label}</span>
-    </button>`).join("")}</nav>`;
+    </button>`).join("")}</div></nav>`;
 
   document.getElementById("app").innerHTML=`<div class="screen">${screenHTML}</div>${navHTML}`;
   afterRender();
