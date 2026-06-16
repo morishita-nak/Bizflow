@@ -217,14 +217,44 @@ body{
 
 /* ── FAB ── */
 .fab{
-  width:40px;height:40px;border-radius:12px;
+  width:52px;height:52px;border-radius:50%;
   background:var(--sky);color:#fff;border:none;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 14px rgba(14,165,233,.35);
-  transition:transform .1s;flex-shrink:0;
+  box-shadow:0 4px 20px rgba(14,165,233,.45);
+  transition:transform .1s,box-shadow .1s;
+  flex-shrink:0;
 }
-.fab:active{transform:scale(.92)}
-.fab svg{width:18px;height:18px;stroke-width:2.2}
+.fab:active{transform:scale(.92);box-shadow:0 2px 8px rgba(14,165,233,.3)}
+.fab svg{width:22px;height:22px;stroke-width:2.2}
+/* 右下固定FAB */
+.fab-fixed{
+  position:fixed;
+  bottom:calc(20px + env(safe-area-inset-bottom));
+  right:calc(50% - min(215px, 50vw) + 16px);
+  z-index:90;
+  width:56px;height:56px;
+  border-radius:50%;
+  background:var(--sky);color:#fff;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 24px rgba(14,165,233,.5);
+  transition:transform .1s;
+}
+.fab-fixed:active{transform:scale(.92)}
+.fab-fixed svg{width:24px;height:24px;stroke-width:2.4}
+/* 右下固定FAB */
+.fab-fixed{
+  position:fixed;
+  bottom:calc(20px + env(safe-area-inset-bottom));
+  right:max(20px, calc(50vw - 215px + 16px));
+  width:52px;height:52px;border-radius:16px;
+  background:var(--sky);color:#fff;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 20px rgba(14,165,233,.45);
+  transition:transform .1s;
+  z-index:90;
+}
+.fab-fixed:active{transform:scale(.92)}
+.fab-fixed svg{width:22px;height:22px;stroke-width:2.2}
 
 /* ── MODAL ── */
 .modal-backdrop{
@@ -993,12 +1023,10 @@ function renderProjects(){
   <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div><div class="eyebrow">案件 / クライアント</div><h1 style="font-size:20px">一覧</h1></div>
-      ${isAdmin?`<div style="display:flex;gap:8px">
-        <button class="fab" onclick="openAddClient()" title="クライアント追加" style="background:var(--teal)">${ICO.plus}</button>
-        <button class="fab" onclick="openAddProject()" title="案件追加">${ICO.plus}</button>
-      </div>`:""}
+
     </div>
   </div>
+  ${isAdmin?(projTabState==="クライアント"?`<button class="fab-fixed" style="background:var(--teal)" onclick="openAddClient()">${ICO.plus}</button>`:`<button class="fab-fixed" onclick="openAddProject()">${ICO.plus}</button>`):""}
   <div style="padding:0 16px 16px;margin-top:8px">
     ${isAdmin?`<div class="tab-toggle"><button class="${projTabState==="案件"?"active":""}" onclick="projTabState='案件';render()">案件</button><button class="${projTabState==="クライアント"?"active":""}" onclick="projTabState='クライアント';render()">クライアント</button></div>`:""}
     ${projTabState==="クライアント"&&isAdmin?`
@@ -1161,7 +1189,7 @@ function renderShifts(){
   <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div><div class="eyebrow">シフト管理</div><h1 style="font-size:20px">${calYear}年 ${calMonth+1}月</h1></div>
-      <button class="fab" onclick="startCalRegMode()" title="日付を選んで登録">${ICO.plus}</button>
+
     </div>
   </div>
   ${regBanner}
@@ -1415,7 +1443,7 @@ function renderReports(){
   <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div><div class="eyebrow">日報</div><h1 style="font-size:20px">${myR.length} 件</h1></div>
-      <button class="fab" onclick="openReportModal()">${ICO.plus}</button>
+
     </div>
   </div>
   <div style="padding:0 16px 16px;margin-top:8px">
@@ -1601,7 +1629,7 @@ function renderExpenses(){
   <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
     <div style="display:flex;align-items:center;justify-content:space-between">
       <div><div class="eyebrow">経費</div><h1 style="font-size:20px">精算管理</h1></div>
-      <button class="fab" onclick="openExpModal()">${ICO.plus}</button>
+
     </div>
   </div>
   <div style="padding:0 16px 16px;margin-top:8px">
