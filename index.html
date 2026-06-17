@@ -1182,10 +1182,16 @@ function renderShifts(){
         const st=STORES.find(st=>st.id===s.storeId);
         const c=getC(u?.color||"sky");
         const isHol=s.type==="公休";
+        const isWork=s.type==="勤務";
+        const typeBadgeColor={勤務:c.bar,内勤:"#A78BFA",商談:"#34D399",外回り:"#FBBF24",公休:"#CBD5E1"};
         return`<div class="shift-bar" style="background:${isHol?"#F1F5F9":c.light};margin-bottom:8px">
-          <div>
-            <div style="font-size:14px;font-weight:800;color:${isHol?"var(--muted)":c.text}">${u?.name} ${isHol?"（公休）":""}</div>
-            ${!isHol?`<div style="font-size:12px;color:var(--sub);margin-top:2px">${p?.name}</div><div style="font-size:11px;color:var(--muted)">${st?.name}</div>`:""}
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+              <div style="font-size:14px;font-weight:800;color:${isHol?"var(--muted)":c.text}">${u?.name}</div>
+              <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;background:${typeBadgeColor[s.type]||c.bar};color:#fff">${s.type}</span>
+            </div>
+            ${isWork?`<div style="font-size:12px;color:var(--sub)">${p?.name||""}</div><div style="font-size:11px;color:var(--muted)">${st?.name||""}</div>`:""}
+            ${(s.type==="商談"||s.type==="外回り")&&p?`<div style="font-size:12px;color:var(--sub)">${p.name}</div>`:""}
           </div>
           <button onclick="deleteShift('${s.id}')" style="background:none;border:none;cursor:pointer;color:#CBD5E1;padding:4px">${ICO.x}</button>
         </div>`;
@@ -1225,6 +1231,9 @@ function renderShifts(){
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
         ${emps.map(u=>{const c=getC(u.color);return`<div style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:3px;border-radius:2px;background:${c.bar}"></div><span style="font-size:11px;font-weight:600;color:var(--sub)">${u.name}</span></div>`;}).join("")}
         <div style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:3px;border-radius:2px;background:#CBD5E1"></div><span style="font-size:11px;font-weight:600;color:var(--muted)">公休</span></div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:3px;border-radius:2px;background:#A78BFA"></div><span style="font-size:11px;font-weight:600;color:var(--muted)">内勤</span></div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:3px;border-radius:2px;background:#34D399"></div><span style="font-size:11px;font-weight:600;color:var(--muted)">商談</span></div>
+        <div style="display:flex;align-items:center;gap:5px"><div style="width:16px;height:3px;border-radius:2px;background:#FBBF24"></div><span style="font-size:11px;font-weight:600;color:var(--muted)">外回り</span></div>
       </div>
       <button onclick="calNext()" style="background:var(--sky-l);border:none;border-radius:10px;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sky)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
@@ -1247,7 +1256,8 @@ function renderShifts(){
         const bars=Object.entries(byStaff).slice(0,3).map(([uid,type])=>{
           const u=USERS.find(u=>u.email===uid);
           const c=getC(u?.color||"sky");
-          return`<div class="cal-bar" style="background:${type==="公休"?"#CBD5E1":c.bar}"></div>`;
+          const barClr = type==="公休"?"#CBD5E1":type==="内勤"?"#A78BFA":type==="商談"?"#34D399":type==="外回り"?"#FBBF24":c.bar;
+          return`<div class="cal-bar" style="background:${barClr}"></div>`;
         }).join("");
         return`<div class="cal-day-cell${isSel?" selected":""}${isRegSel?" selected":""}"
           style="${isRegSel?"background:#E0F2FE;outline:2px solid var(--sky);outline-offset:-2px;z-index:1":""}"
@@ -1288,7 +1298,7 @@ function toggleRegDate(ds){
 function openShiftModalWithDates(){
   if(calSelectedDates.size===0) return;
   const sortedDates=[...calSelectedDates].sort();
-  const emps=USERS.filter(u=>u.role==="Employee");
+  const emps=USERS; // Admin含む全スタッフ
   const activeProjs=projects.filter(p=>p.status==="稼働中");
 
   openModal(`
@@ -1308,9 +1318,14 @@ function openShiftModalWithDates(){
 
     <div style="margin-bottom:14px">
       <label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px">種別</label>
-      <div class="toggle-row">
-        <button id="sf-t-work" class="active" onclick="sfSetType('勤務',this)">勤務</button>
-        <button id="sf-t-hol" onclick="sfSetType('公休',this)">公休</button>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px">
+        ${["勤務","内勤","商談","外回り","公休"].map(t=>`
+        <button onclick="sfSetType('${t}',this)"
+          style="padding:8px 2px;border-radius:10px;border:2px solid ${sfType===t?'var(--sky)':'var(--border)'};
+          background:${sfType===t?'var(--sky)':'#fff'};color:${sfType===t?'#fff':'var(--sub)'};
+          font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .15s">
+          ${t}
+        </button>`).join("")}
       </div>
     </div>
 
@@ -1334,7 +1349,7 @@ function openShiftModalWithDates(){
 }
 
 function openShiftModal(){
-  const emps=USERS.filter(u=>u.role==="Employee");
+  const emps=USERS; // Admin含む全スタッフ
   const activeProjs=projects.filter(p=>p.status==="稼働中");
   let formState={type:"勤務",uid:"",start:TODAY,end:TODAY,projId:"",storeId:"",excl:[]};
   openModal(`
@@ -1379,10 +1394,28 @@ let sfExcl=[];
 let sfType="勤務";
 function sfSetType(t,btn){
   sfType=t;
-  document.querySelectorAll(".toggle-row button").forEach(b=>b.classList.remove("active"));
-  btn.classList.add("active");
-  document.getElementById("sf-excl-wrap").style.display=t==="公休"?"none":"";
-  document.getElementById("sf-proj-wrap").style.display=t==="公休"?"none":"";
+  // 全ボタンのスタイルをリセット
+  document.querySelectorAll("[onclick^='sfSetType']").forEach(b=>{
+    b.style.background="#fff";
+    b.style.color="var(--sub)";
+    b.style.borderColor="var(--border)";
+  });
+  btn.style.background="var(--sky)";
+  btn.style.color="#fff";
+  btn.style.borderColor="var(--sky)";
+
+  // 案件・店舗は「勤務」のみ必須、「内勤・商談・外回り」は任意表示
+  const needProj = t==="勤務";
+  const optProj  = t==="商談"||t==="外回り";
+  const exclWrap = document.getElementById("sf-excl-wrap");
+  const projWrap = document.getElementById("sf-proj-wrap");
+  const projLabel = document.getElementById("sf-proj-label");
+
+  if(exclWrap) exclWrap.style.display=(t==="公休")?"none":"";
+  if(projWrap) projWrap.style.display=(t==="公休"||t==="内勤")?"none":"";
+  if(projLabel){
+    projLabel.textContent = needProj ? "案件 *" : "案件（任意）";
+  }
   sfUpdatePreview();
 }
 function sfToggleDay(i){
@@ -1416,6 +1449,7 @@ function saveShift(){
   const storeId=sfType==="公休"?"":document.getElementById("sf-store")?.value||"";
   if(!uid||!start||!end) return;
   if(sfType==="勤務"&&(!projId||!storeId)) return;
+  // 内勤・商談・外回りは案件任意
   const newShifts=[];
   for(let d=new Date(start);d<=new Date(end);d.setDate(d.getDate()+1)){
     if(sfType==="勤務"&&sfExcl.includes(d.getDay())) continue;
@@ -1438,6 +1472,7 @@ function saveDatesShift(){
   const storeId = sfType==="公休" ? "" : (document.getElementById("sf-store")?.value||"");
   if(!uid){ showToast("スタッフを選択してください"); return; }
   if(sfType==="勤務" && (!projId||!storeId)){ showToast("案件と店舗を選択してください"); return; }
+  if((sfType==="商談"||sfType==="外回り") && !projId){ /* 任意なのでOK */ }
 
   const sortedDates=[...calSelectedDates].sort();
   const newShifts=[];
