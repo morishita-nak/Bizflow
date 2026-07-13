@@ -567,7 +567,10 @@ function loadMockDynamic() {
 }
 
 const EXP_CATS=["交通費","接待費","備品・消耗品","通信費","研修・セミナー","その他"];
-const TODAY="2026-06-14";
+const TODAY=(()=>{
+  const d=new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+})();
 const WDAYS=["日","月","火","水","木","金","土"];
 const fmt=n=>(+n||0).toLocaleString("ja-JP");
 // ISO日付 → YYYY-MM-DD に正規化
@@ -585,7 +588,7 @@ const statusBadge=s=>{
 
 // ── STATE ─────────────────────────────────────────────────────
 let currentUser=null, currentTab="", detailProject=null;
-let calYear=2026, calMonth=5, calSelDate=null;
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth(), calSelDate=null;
 let modal=null;
 let toast_timer=null;
 let projTabState="案件";
@@ -1053,12 +1056,15 @@ function renderProjects(){
   <div style="padding:0 16px 16px;margin-top:8px">
     ${isAdmin?`<div class="tab-toggle"><button class="${projTabState==="案件"?"active":""}" onclick="projTabState='案件';render()">案件</button><button class="${projTabState==="クライアント"?"active":""}" onclick="projTabState='クライアント';render()">クライアント</button></div>`:""}
     ${projTabState==="クライアント"&&isAdmin?`
-      ${cls.map(c=>`<div class="card client-card" style="margin-bottom:8px">
-        <div class="cc-name">${c.company}</div>
-        <div class="cc-row"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>${c.contact}</div>
-        <div class="cc-row"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>${c.tel}</div>
-        <div class="cc-row"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/></svg>${c.mail}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px">関連案件: ${projects.filter(p=>p.clientId===c.id).length} 件</div>
+      ${cls.map(cl=>`<div class="card client-card" style="margin-bottom:8px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+          <div class="cc-name" style="margin-bottom:0">${cl.company}</div>
+          <button onclick="openEditClient('${cl.id}')" style="background:var(--sky-l);border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--sky);cursor:pointer;flex-shrink:0;margin-left:8px">編集</button>
+        </div>
+        <div class="cc-row"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>${cl.contact}</div>
+        <div class="cc-row"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z"/></svg>${cl.tel}</div>
+        <div class="cc-row"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/></svg>${cl.mail}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">関連案件: ${projects.filter(p=>p.clientId===cl.id).length} 件</div>
       </div>`).join("")}`:`
     <div class="pill-row" style="margin-bottom:12px">
       ${statuses.map(s=>`<button class="pill${projFilter===s?" active":""}" onclick="projFilter='${s}';render()">${s}</button>`).join("")}
@@ -1066,15 +1072,18 @@ function renderProjects(){
     ${prjs.map(p=>{
       const cl=cls.find(c=>c.id===p.clientId);
       const sts=STORES.filter(s=>s.projId===p.id);
-      return`<div class="card clickable" style="margin-bottom:8px" onclick="openProjectDetail('${p.id}')">
+      return`<div class="card" style="margin-bottom:8px">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
-          <div style="flex:1;min-width:0;margin-right:8px">
+          <div style="flex:1;min-width:0;margin-right:8px;cursor:pointer" onclick="openProjectDetail('${p.id}')">
             <div style="font-size:14px;font-weight:800;line-height:1.3">${p.name}</div>
             <div style="font-size:12px;color:var(--sub);margin-top:2px">${cl?.company||""}</div>
           </div>
-          ${statusBadge(p.status)}
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            ${statusBadge(p.status)}
+            <button onclick="openEditProject('${p.id}')" style="background:var(--sky-l);border:none;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--sky);cursor:pointer">編集</button>
+          </div>
         </div>
-        <div style="font-size:12px;color:var(--muted)">${fmtDate(p.start)} 〜 ${fmtDate(p.end)} · ${sts.length} 店舗</div>
+        <div style="font-size:12px;color:var(--muted);cursor:pointer" onclick="openProjectDetail('${p.id}')">${fmtDate(p.start)} 〜 ${fmtDate(p.end)} · ${sts.length} 店舗</div>
       </div>`;
     }).join("")}
     ${prjs.length===0?`<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:14px">該当する案件がありません</div>`:""}`}
@@ -1268,7 +1277,10 @@ function renderShifts(){
         </div>`;
       }).join("")}
     </div>
-    ${!calRegMode?`<div style="margin-top:10px;text-align:center;font-size:12px;color:var(--muted)">＋ボタン → 日付をタップして登録</div>`:""}
+    ${!calRegMode?`<div style="margin-top:10px;text-align:center;font-size:12px;color:var(--muted)">
+      ＋ボタン → 日付をタップして登録
+      ${lastSyncTime?`<span style="margin-left:8px;color:var(--muted);font-size:10px">🔄 ${lastSyncTime.getHours()}:${String(lastSyncTime.getMinutes()).padStart(2,"0")} 同期</span>`:""}
+    </div>`:""}
   </div>
   ${detailHTML}`;
 }
@@ -1277,7 +1289,7 @@ function mountShiftCalendar(){}
 function calPrev(){if(calMonth===0){calYear--;calMonth=11;}else calMonth--;calSelDate=null;render();}
 function calNext(){if(calMonth===11){calYear++;calMonth=0;}else calMonth++;calSelDate=null;render();}
 function calSelect(d){calSelDate=calSelDate===d?null:d;render();}
-function deleteShift(id){shifts=shifts.filter(s=>s.id!==id);gasPost("deleteShift",{id});showToast("シフトを削除しました");render();}
+function deleteShift(id){shifts=shifts.filter(s=>s.id!==id);gasPost("deleteShift",{id});showToast("シフトを削除しました");render();setTimeout(syncShifts,2000);}
 
 // 登録モード開始
 function startCalRegMode(){
@@ -1490,7 +1502,9 @@ function saveDatesShift(){
   sfType="勤務";
 
   closeModal();render();
-  showToast(`${newShifts.length} 件のシフトを登録しました`);
+  showToast(`${newShifts.length} 件登録しました（スプレッドシートに保存中...）`);
+  // 保存完了後に再同期
+  setTimeout(syncShifts, 2000);
 }
 
 // ── REPORTS ───────────────────────────────────────────────────
@@ -1869,6 +1883,75 @@ function saveExp(){
 }
 
 // ── CLIENT / PROJECT ADD ──────────────────────────────────────
+
+// ── クライアント編集 ──────────────────────────────────────────
+function openEditClient(id){
+  const cl=clients.find(c=>c.id===id);
+  if(!cl) return;
+  openModal(`
+  <div class="modal-header"><h2>クライアント編集</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
+  <div class="modal-body">
+    <div class="field"><label>会社名</label><input type="text" id="ec-co" value="${cl.company}"></div>
+    <div class="field"><label>担当者名</label><input type="text" id="ec-ct" value="${cl.contact}"></div>
+    <div class="field"><label>電話番号</label><input type="tel" id="ec-tel" value="${cl.tel||''}"></div>
+    <div class="field"><label>メールアドレス</label><input type="email" id="ec-mail" value="${cl.mail||''}"></div>
+    <button class="btn btn-primary btn-full" onclick="saveEditClient('${cl.id}')">保存する</button>
+  </div>`);
+}
+function saveEditClient(id){
+  const co=document.getElementById("ec-co").value.trim();
+  const ct=document.getElementById("ec-ct").value.trim();
+  if(!co||!ct){showToast("会社名と担当者名は必須です");return;}
+  const updated={id,company:co,contact:ct,
+    tel:document.getElementById("ec-tel").value,
+    mail:document.getElementById("ec-mail").value};
+  clients=clients.map(c=>c.id===id?updated:c);
+  gasPost("updateClient",updated);
+  closeModal();render();showToast("クライアントを更新しました");
+}
+
+// ── 案件編集 ─────────────────────────────────────────────────
+function openEditProject(id){
+  const p=projects.find(p=>p.id===id);
+  if(!p) return;
+  openModal(`
+  <div class="modal-header"><h2>案件編集</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
+  <div class="modal-body">
+    <div class="field"><label>案件名</label><input type="text" id="ep2-name" value="${p.name}"></div>
+    <div class="field"><label>取引先</label>
+      <select id="ep2-client">
+        ${clients.map(cl=>`<option value="${cl.id}"${cl.id===p.clientId?" selected":""}>${cl.company}</option>`).join("")}
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="field" style="margin:0"><label>開始日</label><input type="date" id="ep2-start" value="${p.start?.slice(0,10)||''}"></div>
+      <div class="field" style="margin:0"><label>終了日</label><input type="date" id="ep2-end" value="${p.end?.slice(0,10)||''}"></div>
+    </div>
+    <div class="field"><label>単価 (円)</label><input type="number" id="ep2-price" value="${p.price||0}"></div>
+    <div class="field"><label>ステータス</label>
+      <select id="ep2-status">
+        ${["商談中","契約済","稼働中","終了"].map(s=>`<option value="${s}"${s===p.status?" selected":""}>${s}</option>`).join("")}
+      </select>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveEditProject('${p.id}')">保存する</button>
+  </div>`);
+}
+function saveEditProject(id){
+  const name=document.getElementById("ep2-name").value.trim();
+  if(!name){showToast("案件名は必須です");return;}
+  const updated={
+    id,name,
+    clientId:document.getElementById("ep2-client").value,
+    start:document.getElementById("ep2-start").value,
+    end:document.getElementById("ep2-end").value,
+    price:+(document.getElementById("ep2-price").value)||0,
+    status:document.getElementById("ep2-status").value,
+  };
+  projects=projects.map(p=>p.id===id?updated:p);
+  if(detailProject?.id===id) detailProject=updated;
+  gasPost("updateProject",updated);
+  closeModal();render();showToast("案件を更新しました");
+}
 function openAddClient(){
   openModal(`
   <div class="modal-header"><h2>クライアント追加</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
@@ -1930,6 +2013,66 @@ function saveProject(){
   closeModal();render();showToast("案件を追加しました");
 }
 
+// ── リアルタイム同期（ポーリング） ──────────────────────────
+let pollingTimer = null;
+let lastSyncTime = null;
+let isSyncing = false;
+
+async function syncShifts() {
+  if(isSyncing || GAS_URL.startsWith("★")) return;
+  isSyncing = true;
+  try {
+    const res = await fetch(`${GAS_URL}?action=getShifts&t=${Date.now()}`);
+    const data = await res.json();
+    if(Array.isArray(data)){
+      shifts = data.map(normalizeShift);
+      lastSyncTime = new Date();
+      // シフト画面表示中なら再描画
+      if(currentTab === "shifts" && !modal) render();
+    }
+  } catch(e){ console.warn("sync error:", e); }
+  finally { isSyncing = false; }
+}
+
+async function syncAll() {
+  if(isSyncing || GAS_URL.startsWith("★")) return;
+  isSyncing = true;
+  try {
+    const res = await fetch(`${GAS_URL}?action=getAll&t=${Date.now()}`);
+    const d = await res.json();
+    if(d.error) return;
+    if(Array.isArray(d.shifts))   shifts   = d.shifts.map(normalizeShift);
+    if(Array.isArray(d.reports))  reports  = d.reports.map(normalizeReport);
+    if(Array.isArray(d.expenses)) expenses = d.expenses.map(normalizeExpense);
+    // マスターも更新
+    if(Array.isArray(d.users))    USERS    = d.users;
+    if(Array.isArray(d.clients))  clients  = d.clients;
+    if(Array.isArray(d.projects)) projects = d.projects;
+    if(Array.isArray(d.stores))   STORES   = d.stores;
+    lastSyncTime = new Date();
+    if(!modal) render();
+  } catch(e){ console.warn("syncAll error:", e); }
+  finally { isSyncing = false; }
+}
+
+function startPolling() {
+  if(pollingTimer) clearInterval(pollingTimer);
+  // シフト画面は30秒ごとに同期、それ以外は60秒ごと
+  pollingTimer = setInterval(()=>{
+    if(!currentUser) return;
+    if(currentTab === "shifts") syncShifts();
+    else syncAll();
+  }, 30000);
+  console.info("ポーリング開始（30秒間隔）");
+}
+
+// ページが表示状態に戻ったら即座に同期
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible" && currentUser){
+    syncAll();
+  }
+});
+
 // ── BOOT ─────────────────────────────────────────────────────
 (async () => {
   // ローディング画面
@@ -1950,6 +2093,7 @@ function saveProject(){
 
   dataReady = true;
   render();
+  startPolling(); // ログイン後にポーリング開始
 })();
 </script>
 </body>
