@@ -1229,7 +1229,7 @@ function renderShifts(){
   <button class="fab-fixed" onclick="startCalRegMode()">${ICO.plus}</button>
   <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
     <div style="display:flex;align-items:center;justify-content:space-between">
-      <div><div class="eyebrow">シフト管理</div><h1 style="font-size:20px">${calYear}年 ${calMonth+1}月</h1></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%"><div><div class="eyebrow">シフト管理</div><h1 style="font-size:20px">${calYear}年 ${calMonth+1}月</h1></div><button onclick="forceReload()" style="background:rgba(255,255,255,.2);border:none;border-radius:10px;padding:6px 10px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:3px"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>更新</button></div>
 
     </div>
   </div>
@@ -1531,6 +1531,7 @@ function saveDatesShift(){
   })();
 }
 
+
 // ── REPORTS ───────────────────────────────────────────────────
 let reportFilter="全て";
 function renderReports(){
@@ -1540,7 +1541,7 @@ function renderReports(){
   <button class="fab-fixed" onclick="openReportModal()">${ICO.plus}</button>
   <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
     <div style="display:flex;align-items:center;justify-content:space-between">
-      <div><div class="eyebrow">日報</div><h1 style="font-size:20px">${myR.length} 件</h1></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%"><div><div class="eyebrow">日報</div><h1 style="font-size:20px">${myR.length} 件</h1></div><button onclick="forceReload()" style="background:rgba(255,255,255,.2);border:none;border-radius:10px;padding:6px 10px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:3px"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>更新</button></div>
 
     </div>
   </div>
@@ -1727,7 +1728,7 @@ function renderExpenses(){
   <button class="fab-fixed" onclick="openExpModal()">${ICO.plus}</button>
   <div class="page-header"><div class="header-deco"></div><div class="header-deco2"></div>
     <div style="display:flex;align-items:center;justify-content:space-between">
-      <div><div class="eyebrow">経費</div><h1 style="font-size:20px">精算管理</h1></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%"><div><div class="eyebrow">経費</div><h1 style="font-size:20px">精算管理</h1></div><button onclick="forceReload()" style="background:rgba(255,255,255,.2);border:none;border-radius:10px;padding:6px 10px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:3px"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>更新</button></div>
 
     </div>
   </div>
@@ -1964,15 +1965,17 @@ function openEditProject(id){
 
     <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin:16px 0 8px">店舗</div>
     <div id="pj-stores-list"></div>
-    <div style="display:flex;gap:6px;margin-bottom:16px">
-      <input type="text" id="pj-store-name" placeholder="店舗名 *" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;background:#FAFEFF;outline:none">
-      <input type="text" id="pj-store-addr" placeholder="住所" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;background:#FAFEFF;outline:none">
-      <button onclick="addTempStore('${id}')" style="background:var(--sky);border:none;border-radius:10px;padding:9px 14px;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">追加</button>
+    <div style="margin-bottom:16px">
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input type="text" id="pj-store-name" placeholder="店舗名 *" style="flex:1;min-width:0;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;background:#FAFEFF;outline:none">
+        <button onclick="addTempStore('${id}')" style="flex-shrink:0;background:var(--sky);border:none;border-radius:10px;padding:9px 16px;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">追加</button>
+      </div>
+      <input type="text" id="pj-store-addr" placeholder="住所（任意）" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;background:#FAFEFF;outline:none;box-sizing:border-box">
     </div>
 
     <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin-bottom:10px">担当スタッフ</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px">
-      ${USERS.filter(u=>u.role==="Employee").map(u=>{
+      ${USERS.map(u=>{
         const col=getC(u.color);
         const sel=assigned.includes(u.email);
         return`<button id="pju-${u.email.replace(/[@.]/g,'_')}" onclick="toggleTempUser('${u.email}','${col.bg}')"
@@ -2040,15 +2043,17 @@ function openAddProject(){
 
     <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin:16px 0 8px">店舗</div>
     <div id="pj-stores-list"></div>
-    <div style="display:flex;gap:6px;margin-bottom:16px">
-      <input type="text" id="pj-store-name" placeholder="店舗名 *" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;background:#FAFEFF;outline:none">
-      <input type="text" id="pj-store-addr" placeholder="住所" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;background:#FAFEFF;outline:none">
-      <button onclick="addTempStore(null)" style="background:var(--sky);border:none;border-radius:10px;padding:9px 14px;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">追加</button>
+    <div style="margin-bottom:16px">
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input type="text" id="pj-store-name" placeholder="店舗名 *" style="flex:1;min-width:0;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;background:#FAFEFF;outline:none">
+        <button onclick="addTempStore(null)" style="flex-shrink:0;background:var(--sky);border:none;border-radius:10px;padding:9px 16px;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">追加</button>
+      </div>
+      <input type="text" id="pj-store-addr" placeholder="住所（任意）" style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;background:#FAFEFF;outline:none;box-sizing:border-box">
     </div>
 
     <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin-bottom:10px">担当スタッフ</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px">
-      ${USERS.filter(u=>u.role==="Employee").map(u=>{
+      ${USERS.map(u=>{
         const col=getC(u.color);
         return`<button id="pju-${u.email.replace(/[@.]/g,'_')}" onclick="toggleTempUser('${u.email}','${col.bg}')"
           style="padding:7px 12px;border-radius:100px;border:2px solid var(--border);background:#fff;color:var(--sub);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .15s">
@@ -2139,41 +2144,26 @@ function saveProject(existingId){
 }
 
 // ── リアルタイム同期（ポーリング） ──────────────────────────
-let pollingTimer = null;
-let lastSyncTime = null;
+// ══ データ同期方針 ══════════════════════════════════════════
+// ローカル配列(shifts/reports/expenses)を正とする
+// GASへの書き込みは非同期（失敗してもローカルは維持）
+// 自動ポーリングは廃止 → 手動リロードボタンのみ
+// ════════════════════════════════════════════════════════════
+
 let isSyncing = false;
-let isSaving = false;
-let pendingSaves = 0;
-// シフト保存キュー（順番に処理）
-const saveQueue = [];
-let queueRunning = false;
+let lastSyncTime = null;
 
-async function syncShifts() {
-  if(isSyncing || isSaving || pendingSaves > 0 || GAS_URL.startsWith("★")) return;
+// 全データを強制リロード（手動リロードボタン用）
+async function forceReload() {
+  if(isSyncing || GAS_URL.startsWith("★")) return;
   isSyncing = true;
-  try {
-    const res = await fetch(`${GAS_URL}?action=getShifts&t=${Date.now()}`);
-    const data = await res.json();
-    if(Array.isArray(data) && data.length >= shifts.length){
-      // データ件数が減っている場合は上書きしない（保存途中の可能性）
-      shifts = data.map(normalizeShift);
-      lastSyncTime = new Date();
-      if(currentTab === "shifts" && !modal) render();
-    }
-  } catch(e){ console.warn("sync error:", e); }
-  finally { isSyncing = false; }
-}
-
-async function syncAll() {
-  if(isSyncing || isSaving || pendingSaves > 0 || GAS_URL.startsWith("★")) return;
-  isSyncing = true;
+  showToast("最新データを取得中...");
   try {
     const res = await fetch(`${GAS_URL}?action=getAll&t=${Date.now()}`);
     const d = await res.json();
-    if(d.error) return;
-    // シフトは件数が減る場合は上書きしない（保存途中対策）
-    if(Array.isArray(d.shifts) && d.shifts.length >= shifts.length)
-      shifts = d.shifts.map(normalizeShift);
+    if(d.error) throw new Error(d.error);
+    // 全データを上書き（手動リロードなので件数チェック不要）
+    if(Array.isArray(d.shifts))   shifts   = d.shifts.map(normalizeShift);
     if(Array.isArray(d.reports))  reports  = d.reports.map(normalizeReport);
     if(Array.isArray(d.expenses)) expenses = d.expenses.map(normalizeExpense);
     if(Array.isArray(d.users))    USERS    = d.users;
@@ -2181,28 +2171,15 @@ async function syncAll() {
     if(Array.isArray(d.projects)) projects = d.projects;
     if(Array.isArray(d.stores))   STORES   = d.stores;
     lastSyncTime = new Date();
-    if(!modal) render();
-  } catch(e){ console.warn("syncAll error:", e); }
-  finally { isSyncing = false; }
+    render();
+    showToast("✓ 最新データに更新しました");
+  } catch(e) {
+    console.warn("reload error:", e);
+    showToast("⚠️ 通信エラー。再度お試しください");
+  } finally { isSyncing = false; }
 }
 
-function startPolling() {
-  if(pollingTimer) clearInterval(pollingTimer);
-  // シフト画面は30秒ごとに同期、それ以外は60秒ごと
-  pollingTimer = setInterval(()=>{
-    if(!currentUser) return;
-    if(currentTab === "shifts") syncShifts();
-    else syncAll();
-  }, 120000); // 2分ごとに同期
-  console.info("ポーリング開始（30秒間隔）");
-}
-
-// ページが表示状態に戻ったら即座に同期
-document.addEventListener("visibilitychange", ()=>{
-  if(document.visibilityState === "visible" && currentUser){
-    syncAll();
-  }
-});
+function startPolling() { /* 自動ポーリング廃止 */ }
 
 // ── BOOT ─────────────────────────────────────────────────────
 (async () => {
