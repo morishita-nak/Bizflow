@@ -664,7 +664,7 @@ function render(){
   ];
   const tabs=isAdmin?adminTabs:empTabs;
   const navHTML=`<nav class="bottom-nav"><div class="nav-tabs">${tabs.map(t=>`
-    <button class="nav-btn${(detailProject?"":currentTab)===t.id?" active":""}" onclick="goTab(&quot;${t.id}&quot;)"">
+    <button class="nav-btn${(detailProject?"":currentTab)===t.id?" active":""}" data-tabid="${t.id}" onclick="_goTab(this)">
       <div class="nav-icon-wrap">${t.icon}</div>
       <span>${t.label}</span>
     </button>`).join("")}</div></nav>`;
@@ -673,6 +673,7 @@ function render(){
   afterRender();
 }
 
+function _goTab(b){goTab(b.dataset.tabid);}
 function goTab(id){detailProject=null;currentTab=id;render();}
 function afterRender(){mountShiftCalendar();}
 
@@ -1345,7 +1346,7 @@ function openShiftModalWithDates(){
       <label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px">種別</label>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px">
         ${["勤務","内勤","商談","外回り","公休"].map(t=>`
-        <button data-type="${t}" onclick="_sfType(this)""
+        <button data-type="${t}" onclick="_sfType(this)"
           style="padding:8px 2px;border-radius:10px;border:2px solid ${sfType===t?'var(--sky)':'var(--border)'};
           background:${sfType===t?'var(--sky)':'#fff'};color:${sfType===t?'#fff':'var(--sub)'};
           font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .15s">
@@ -1385,8 +1386,8 @@ function openShiftModal(){
     </div>
     <div style="margin-bottom:14px"><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px;letter-spacing:.04em">種別</label>
       <div class="toggle-row">
-        <button id="sf-t-work" class="active" data-type="勤務" onclick="_sfType(this)"">勤務</button>
-        <button id="sf-t-hol" data-type="公休" onclick="_sfType(this)"">公休</button>
+        <button id="sf-t-work" class="active" data-type="勤務" onclick="_sfType(this)">勤務</button>
+        <button id="sf-t-hol" data-type="公休" onclick="_sfType(this)">公休</button>
       </div>
     </div>
     <div style="margin-bottom:14px"><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px;letter-spacing:.04em">期間</label>
@@ -1669,7 +1670,7 @@ function openReportModal(){
       <div id="rp-others"></div>
     </div>
     <div class="field"><label>コメント</label><textarea id="rp-note" rows="3" placeholder="本日の所感・気づきなど"></textarea></div>
-    <button class="btn btn-primary btn-full" data-proj="${todayS?.projId||""}" data-store="${todayS?.storeId||""}" onclick="_saveRep(this)"">提出する</button>
+    <button class="btn btn-primary btn-full" data-proj="${todayS?.projId||""}" data-store="${todayS?.storeId||""}" onclick="_saveRep(this)">提出する</button>
   </div>`);
 }
 function addOtherItem(){
