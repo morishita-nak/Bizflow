@@ -1812,6 +1812,7 @@ function openExpDetail(id){
 }
 function _appExp(b){approveExp(b.dataset.id);}
 function approveExp(id){expenses=expenses.map(e=>e.id===id?{...e,status:"承認"}:e);gasPost("updateExpenseStatus",{id,status:"承認"});closeModal();render();showToast("承認しました");}
+function _rejExp(b){rejectExp(b.getAttribute("data-id") || b.dataset.id);}
 function rejectExp(id) {expenses=expenses.map(e=>e.id===id?{...e,status:"差戻し"}:e);gasPost("updateExpenseStatus",{id,status:"差戻し"});closeModal();render();showToast("差し戻しました");}
 
 let expReceiptData=null;
