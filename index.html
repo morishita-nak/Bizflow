@@ -1291,7 +1291,13 @@ function mountShiftCalendar(){}
 function calPrev(){if(calMonth===0){calYear--;calMonth=11;}else calMonth--;calSelDate=null;render();}
 function calNext(){if(calMonth===11){calYear++;calMonth=0;}else calMonth++;calSelDate=null;render();}
 function calSelect(d){calSelDate=calSelDate===d?null:d;render();}
-function deleteShift(id){shifts=shifts.filter(s=>s.id!==id);gasPost("deleteShift",{id});showToast("シフトを削除しました");render();setTimeout(syncShifts,2000);}
+function deleteShift(id){
+  shifts=shifts.filter(s=>s.id!==id);
+  render();
+  isSaving=true;
+  gasPost("deleteShift",{id}).finally(()=>{ isSaving=false; });
+  showToast("シフトを削除しました");
+}
 
 // 登録モード開始
 function startCalRegMode(){
@@ -1507,10 +1513,22 @@ function saveDatesShift(){
   closeModal();render();
   showToast(`${newShifts.length} 件登録しました`);
 
-  // GASに非同期保存（完了後にポーリング停止中のみ同期）
-  Promise.all(newShifts.map(s=>gasPost("addShift",s)))
-    .then(()=>{ console.info("シフト保存完了"); })
-    .catch(e=>{ console.warn("シフト保存エラー:", e); showToast("⚠️ 保存に失敗しました"); });
+  // GASに順番に保存（並列だとスプレッドシートの競合が起きる）
+  isSaving = true;
+  pendingSaves = newShifts.length;
+  (async()=>{
+    for(const s of newShifts){
+      try{
+        await gasPost("addShift", s);
+        pendingSaves--;
+      }catch(e){
+        console.warn("shift save error:", e);
+      }
+    }
+    isSaving = false;
+    pendingSaves = 0;
+    console.info("全シフト保存完了");
+  })();
 }
 
 // ── REPORTS ───────────────────────────────────────────────────
@@ -1920,44 +1938,57 @@ function saveEditClient(id){
 function openEditProject(id){
   const p=projects.find(p=>p.id===id);
   if(!p) return;
+  tempStores=STORES.filter(s=>s.projId===id).map(s=>({...s}));
+  const assigned=(p.assignedUsers||"").split(",").filter(Boolean);
+  tempAssignedUsers=[...assigned];
   openModal(`
   <div class="modal-header"><h2>案件編集</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
   <div class="modal-body">
-    <div class="field"><label>案件名</label><input type="text" id="ep2-name" value="${p.name}"></div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin-bottom:10px">基本情報</div>
+    <div class="field"><label>案件名</label><input type="text" id="pj-name" value="${p.name}"></div>
     <div class="field"><label>取引先</label>
-      <select id="ep2-client">
+      <select id="pj-client">
         ${clients.map(cl=>`<option value="${cl.id}"${cl.id===p.clientId?" selected":""}>${cl.company}</option>`).join("")}
       </select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-      <div class="field" style="margin:0"><label>開始日</label><input type="date" id="ep2-start" value="${p.start?.slice(0,10)||''}"></div>
-      <div class="field" style="margin:0"><label>終了日</label><input type="date" id="ep2-end" value="${p.end?.slice(0,10)||''}"></div>
+      <div class="field" style="margin:0"><label>開始日</label><input type="date" id="pj-start" value="${toDateInput(p.start)}"></div>
+      <div class="field" style="margin:0"><label>終了日</label><input type="date" id="pj-end" value="${toDateInput(p.end)}"></div>
     </div>
-    <div class="field"><label>単価 (円)</label><input type="number" id="ep2-price" value="${p.price||0}"></div>
+    <div class="field"><label>単価 (円)</label><input type="number" id="pj-price" value="${p.price||0}"></div>
     <div class="field"><label>ステータス</label>
-      <select id="ep2-status">
+      <select id="pj-status">
         ${["商談中","契約済","稼働中","終了"].map(s=>`<option value="${s}"${s===p.status?" selected":""}>${s}</option>`).join("")}
       </select>
     </div>
-    <button class="btn btn-primary btn-full" onclick="saveEditProject('${p.id}')">保存する</button>
+
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin:16px 0 8px">店舗</div>
+    <div id="pj-stores-list"></div>
+    <div style="display:flex;gap:6px;margin-bottom:16px">
+      <input type="text" id="pj-store-name" placeholder="店舗名 *" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;background:#FAFEFF;outline:none">
+      <input type="text" id="pj-store-addr" placeholder="住所" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;background:#FAFEFF;outline:none">
+      <button onclick="addTempStore('${id}')" style="background:var(--sky);border:none;border-radius:10px;padding:9px 14px;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">追加</button>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin-bottom:10px">担当スタッフ</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px">
+      ${USERS.filter(u=>u.role==="Employee").map(u=>{
+        const col=getC(u.color);
+        const sel=assigned.includes(u.email);
+        return`<button id="pju-${u.email.replace(/[@.]/g,'_')}" onclick="toggleTempUser('${u.email}','${col.bg}')"
+          style="padding:7px 12px;border-radius:100px;border:2px solid ${sel?col.bg:"var(--border)"};
+          background:${sel?col.bg:"#fff"};color:${sel?"#fff":"var(--sub)"};
+          font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .15s">
+          ${u.name}
+        </button>`;
+      }).join("")}
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="saveProject('${id}')">保存する</button>
   </div>`);
+  renderTempStores();
 }
-function saveEditProject(id){
-  const name=document.getElementById("ep2-name").value.trim();
-  if(!name){showToast("案件名は必須です");return;}
-  const updated={
-    id,name,
-    clientId:document.getElementById("ep2-client").value,
-    start:document.getElementById("ep2-start").value,
-    end:document.getElementById("ep2-end").value,
-    price:+(document.getElementById("ep2-price").value)||0,
-    status:document.getElementById("ep2-status").value,
-  };
-  projects=projects.map(p=>p.id===id?updated:p);
-  if(detailProject?.id===id) detailProject=updated;
-  gasPost("updateProject",updated);
-  closeModal();render();showToast("案件を更新しました");
-}
+
 function openAddClient(){
   openModal(`
   <div class="modal-header"><h2>クライアント追加</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
@@ -1982,50 +2013,143 @@ function saveClient(){
 }
 
 function openAddProject(){
+  tempStores=[];
+  tempAssignedUsers=[];
   openModal(`
   <div class="modal-header"><h2>案件追加</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
   <div class="modal-body">
-    <div class="field"><label>案件名</label><input type="text" id="pj-name" placeholder="例: ドコモ新橋 夏季キャンペーン"></div>
-    <div class="field"><label>取引先</label>
-      <select id="pj-client"><option value="">選択してください</option>${clients.map(c=>`<option value="${c.id}">${c.company}</option>`).join("")}</select>
+
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin-bottom:10px">基本情報</div>
+    <div class="field"><label>案件名 *</label><input type="text" id="pj-name" placeholder="ドコモ新橋 夏季キャンペーン"></div>
+    <div class="field"><label>取引先 *</label>
+      <select id="pj-client"><option value="">選択してください</option>
+        ${clients.map(cl=>`<option value="${cl.id}">${cl.company}</option>`).join("")}
+      </select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
       <div class="field" style="margin:0"><label>開始日</label><input type="date" id="pj-start"></div>
       <div class="field" style="margin:0"><label>終了日</label><input type="date" id="pj-end"></div>
     </div>
-    <div class="field"><label>単価 (円)</label><input type="number" id="pj-price" placeholder="例: 150000"></div>
+    <div class="field"><label>単価 (円)</label><input type="number" id="pj-price" placeholder="150000"></div>
     <div class="field"><label>ステータス</label>
       <select id="pj-status">
         <option value="商談中">商談中</option><option value="契約済">契約済</option>
         <option value="稼働中">稼働中</option><option value="終了">終了</option>
       </select>
     </div>
-    <button class="btn btn-primary btn-full" onclick="saveProject()">追加する</button>
+
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin:16px 0 8px">店舗</div>
+    <div id="pj-stores-list"></div>
+    <div style="display:flex;gap:6px;margin-bottom:16px">
+      <input type="text" id="pj-store-name" placeholder="店舗名 *" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;background:#FAFEFF;outline:none">
+      <input type="text" id="pj-store-addr" placeholder="住所" style="flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13px;font-family:inherit;background:#FAFEFF;outline:none">
+      <button onclick="addTempStore(null)" style="background:var(--sky);border:none;border-radius:10px;padding:9px 14px;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">追加</button>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin-bottom:10px">担当スタッフ</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px">
+      ${USERS.filter(u=>u.role==="Employee").map(u=>{
+        const col=getC(u.color);
+        return`<button id="pju-${u.email.replace(/[@.]/g,'_')}" onclick="toggleTempUser('${u.email}','${col.bg}')"
+          style="padding:7px 12px;border-radius:100px;border:2px solid var(--border);background:#fff;color:var(--sub);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .15s">
+          ${u.name}
+        </button>`;
+      }).join("")}
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="saveProject(null)">追加する</button>
   </div>`);
+  renderTempStores();
 }
-function saveProject(){
-  const name=document.getElementById("pj-name").value;
-  const clientId=document.getElementById("pj-client").value;
-  const start=document.getElementById("pj-start").value;
-  if(!name||!clientId||!start){showToast("案件名・取引先・開始日は必須です");return;}
-  const newProj = {
-    id:`P${Date.now()}`,name,clientId,start,
-    end:document.getElementById("pj-end").value,
-    price:+(document.getElementById("pj-price").value)||0,
-    status:document.getElementById("pj-status").value
+
+// 一時店舗・スタッフ
+let tempStores=[], tempAssignedUsers=[];
+
+function addTempStore(projId){
+  const n=document.getElementById("pj-store-name")?.value?.trim();
+  const a=document.getElementById("pj-store-addr")?.value?.trim()||"";
+  if(!n){showToast("店舗名を入力してください");return;}
+  tempStores.push({id:`S${Date.now()}_${Math.random().toString(36).slice(2,5)}`,name:n,addr:a,projId:projId||""});
+  renderTempStores();
+  const ne=document.getElementById("pj-store-name"); if(ne) ne.value="";
+  const ae=document.getElementById("pj-store-addr"); if(ae) ae.value="";
+}
+
+function removeTempStore(i){
+  tempStores.splice(i,1);
+  renderTempStores();
+}
+
+function renderTempStores(){
+  const el=document.getElementById("pj-stores-list");
+  if(!el) return;
+  if(!tempStores.length){
+    el.innerHTML=`<div style="font-size:12px;color:var(--muted);padding:6px 0 10px">まだ店舗が追加されていません</div>`;
+    return;
+  }
+  el.innerHTML=tempStores.map((s,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:#F8FDFE;border-radius:10px;padding:8px 12px;margin-bottom:6px">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700">${s.name}</div>
+        ${s.addr?`<div style="font-size:11px;color:var(--muted)">${s.addr}</div>`:""}
+      </div>
+      <button onclick="removeTempStore(${i})" style="background:none;border:none;cursor:pointer;color:#CBD5E1;font-size:16px;padding:2px 6px">✕</button>
+    </div>`).join("");
+}
+
+function toggleTempUser(email,bg){
+  const btn=document.getElementById("pju-"+email.replace(/[@.]/g,"_"));
+  if(tempAssignedUsers.includes(email)){
+    tempAssignedUsers=tempAssignedUsers.filter(e=>e!==email);
+    if(btn){btn.style.background="#fff";btn.style.color="var(--sub)";btn.style.borderColor="var(--border)";}
+  }else{
+    tempAssignedUsers.push(email);
+    if(btn){btn.style.background=bg||"var(--sky)";btn.style.color="#fff";btn.style.borderColor=bg||"var(--sky)";}
+  }
+}
+
+
+function saveProject(existingId){
+  const name=(document.getElementById("pj-name")?.value||"").trim();
+  const clientId=document.getElementById("pj-client")?.value||"";
+  if(!name||!clientId){showToast("案件名・取引先は必須です");return;}
+  const projId=existingId||`P${Date.now()}`;
+  const proj={
+    id:projId, name, clientId,
+    start:document.getElementById("pj-start")?.value||"",
+    end:document.getElementById("pj-end")?.value||"",
+    price:+(document.getElementById("pj-price")?.value)||0,
+    status:document.getElementById("pj-status")?.value||"商談中",
+    assignedUsers:(typeof tempAssignedUsers!=="undefined"?tempAssignedUsers:[]).join(","),
   };
-  projects=[...projects,newProj];
-  gasPost("addProject", newProj);
-  closeModal();render();showToast("案件を追加しました");
+  if(existingId){
+    projects=projects.map(p=>p.id===existingId?proj:p);
+    if(detailProject?.id===existingId) detailProject=proj;
+    gasPost("updateProject",proj);
+  } else {
+    projects=[...projects,proj];
+    gasPost("addProject",proj);
+  }
+  // 新規店舗を保存
+  const newStores=(typeof tempStores!=="undefined"?tempStores:[]).map(s=>({...s,projId}));
+  newStores.forEach(s=>{STORES=[...STORES,s];gasPost("addStore",s);});
+  if(typeof tempStores!=="undefined") tempStores=[];
+  if(typeof tempAssignedUsers!=="undefined") tempAssignedUsers=[];
+  closeModal();render();showToast(existingId?"案件を更新しました":"案件を追加しました");
 }
 
 // ── リアルタイム同期（ポーリング） ──────────────────────────
 let pollingTimer = null;
 let lastSyncTime = null;
 let isSyncing = false;
+let isSaving = false;
+let pendingSaves = 0;
+// シフト保存キュー（順番に処理）
+const saveQueue = [];
+let queueRunning = false;
 
 async function syncShifts() {
-  if(isSyncing || GAS_URL.startsWith("★")) return;
+  if(isSyncing || isSaving || pendingSaves > 0 || GAS_URL.startsWith("★")) return;
   isSyncing = true;
   try {
     const res = await fetch(`${GAS_URL}?action=getShifts&t=${Date.now()}`);
@@ -2041,16 +2165,17 @@ async function syncShifts() {
 }
 
 async function syncAll() {
-  if(isSyncing || GAS_URL.startsWith("★")) return;
+  if(isSyncing || isSaving || pendingSaves > 0 || GAS_URL.startsWith("★")) return;
   isSyncing = true;
   try {
     const res = await fetch(`${GAS_URL}?action=getAll&t=${Date.now()}`);
     const d = await res.json();
     if(d.error) return;
-    if(Array.isArray(d.shifts))   shifts   = d.shifts.map(normalizeShift);
+    // シフトは件数が減る場合は上書きしない（保存途中対策）
+    if(Array.isArray(d.shifts) && d.shifts.length >= shifts.length)
+      shifts = d.shifts.map(normalizeShift);
     if(Array.isArray(d.reports))  reports  = d.reports.map(normalizeReport);
     if(Array.isArray(d.expenses)) expenses = d.expenses.map(normalizeExpense);
-    // マスターも更新
     if(Array.isArray(d.users))    USERS    = d.users;
     if(Array.isArray(d.clients))  clients  = d.clients;
     if(Array.isArray(d.projects)) projects = d.projects;
@@ -2068,7 +2193,7 @@ function startPolling() {
     if(!currentUser) return;
     if(currentTab === "shifts") syncShifts();
     else syncAll();
-  }, 30000);
+  }, 120000); // 2分ごとに同期
   console.info("ポーリング開始（30秒間隔）");
 }
 
