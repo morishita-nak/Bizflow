@@ -1199,8 +1199,10 @@ function renderShifts(){
               <div style="font-size:14px;font-weight:800;color:${isHol?"var(--muted)":c.text}">${u?.name}</div>
               <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;background:${typeBadgeColor[s.type]||c.bar};color:#fff">${s.type}</span>
             </div>
-            ${isWork?`<div style="font-size:12px;color:var(--sub)">${p?.name||""}</div><div style="font-size:11px;color:var(--muted)">${st?.name||""}</div>`:""}
-            ${(s.type==="商談"||s.type==="外回り")&&p?`<div style="font-size:12px;color:var(--sub)">${p.name}</div>`:""}
+            ${isWork?`<div style="font-size:12px;color:var(--sub)">${p?.name||""}</div>
+              <div style="font-size:11px;color:var(--muted)">${st?.name||""} ${p?("· "+( clients.find(cl=>cl.id===p.clientId)?.company||"")):"" }</div>`:""}
+            ${(s.type==="商談"||s.type==="外回り")&&p?`<div style="font-size:12px;color:var(--sub)">${p.name}</div>
+              <div style="font-size:11px;color:var(--muted)">${clients.find(cl=>cl.id===p.clientId)?.company||""}</div>`:""}
           </div>
           <button onclick="deleteShift('${s.id}')" style="background:none;border:none;cursor:pointer;color:#CBD5E1;padding:4px">${ICO.x}</button>
         </div>`;
@@ -1311,7 +1313,9 @@ function openShiftModalWithDates(){
   if(calSelectedDates.size===0) return;
   const sortedDates=[...calSelectedDates].sort();
   const emps=USERS; // Admin含む全スタッフ
+  // 稼働中を優先しつつ全案件を選択可能に
   const activeProjs=projects.filter(p=>p.status==="稼働中");
+  const allProjs=projects; // フォールバック用
 
   openModal(`
   <div class="modal-header"><h2>シフト登録</h2><button class="modal-close" onclick="closeModal()">${ICO.x}</button></div>
@@ -1347,7 +1351,7 @@ function openShiftModalWithDates(){
 
     <div id="sf-proj-wrap">
       <div class="field"><label>案件</label>
-        <select id="sf-proj" onchange="sfProjChange()"><option value="">選択してください</option>${activeProjs.map(p=>`<option value="${p.id}">${p.name}</option>`).join("")}</select>
+        <select id="sf-proj" onchange="sfProjChange()"><option value="">選択してください</option>${projects.map(p=>`<option value="${p.id}">${p.name}${p.status!=="稼働中"?" ("+p.status+")":""}</option>`).join("")}</select>
       </div>
       <div class="field"><label>店舗</label><select id="sf-store"><option value="">案件を先に選択</option></select></div>
     </div>
@@ -1389,7 +1393,7 @@ function openShiftModal(){
     </div>
     <div id="sf-proj-wrap">
       <div class="field"><label>案件</label>
-        <select id="sf-proj" onchange="sfProjChange()"><option value="">選択してください</option>${activeProjs.map(p=>`<option value="${p.id}">${p.name}</option>`).join("")}</select>
+        <select id="sf-proj" onchange="sfProjChange()"><option value="">選択してください</option>${projects.map(p=>`<option value="${p.id}">${p.name}${p.status!=="稼働中"?" ("+p.status+")":""}</option>`).join("")}</select>
       </div>
       <div class="field"><label>店舗</label><select id="sf-store"><option value="">案件を先に選択</option></select></div>
     </div>
@@ -1490,21 +1494,23 @@ function saveDatesShift(){
   const newShifts=[];
   sortedDates.forEach(ds=>{
     const dup=shifts.some(s=>s.date===ds&&s.uid===uid&&s.type===sfType);
-    if(!dup) newShifts.push({id:`SH${Date.now()}_${ds}`,date:ds,uid,projId,storeId,type:sfType});
+    if(!dup) newShifts.push({id:`SH${Date.now()}_${Math.random().toString(36).slice(2,6)}`,date:ds,uid,projId,storeId,type:sfType});
   });
 
+  // ローカルに先に追加
   shifts=[...shifts,...newShifts];
-  newShifts.forEach(s=>gasPost("addShift",s));
 
-  // 登録モード終了
+  // 登録モード終了・再描画
   calRegMode=false;
   calSelectedDates=new Set();
   sfType="勤務";
-
   closeModal();render();
-  showToast(`${newShifts.length} 件登録しました（スプレッドシートに保存中...）`);
-  // 保存完了後に再同期
-  setTimeout(syncShifts, 2000);
+  showToast(`${newShifts.length} 件登録しました`);
+
+  // GASに非同期保存（完了後にポーリング停止中のみ同期）
+  Promise.all(newShifts.map(s=>gasPost("addShift",s)))
+    .then(()=>{ console.info("シフト保存完了"); })
+    .catch(e=>{ console.warn("シフト保存エラー:", e); showToast("⚠️ 保存に失敗しました"); });
 }
 
 // ── REPORTS ───────────────────────────────────────────────────
@@ -1803,7 +1809,7 @@ function openExpModal(){
       </div>
     </div>
     <div id="ep-proj-wrap" class="field"><label>案件</label>
-      <select id="ep-proj"><option value="">選択してください</option>${activeProjs.map(p=>`<option value="${p.id}">${p.name}</option>`).join("")}</select>
+      <select id="ep-proj"><option value="">選択してください</option>${projects.map(p=>`<option value="${p.id}">${p.name}${p.status!=="稼働中"?" ("+p.status+")":""}</option>`).join("")}</select>
     </div>
     <div class="field"><label>カテゴリ</label>
       <select id="ep-cat"><option value="">選択してください</option>${EXP_CATS.map(c=>`<option value="${c}">${c}</option>`).join("")}</select>
@@ -2024,10 +2030,10 @@ async function syncShifts() {
   try {
     const res = await fetch(`${GAS_URL}?action=getShifts&t=${Date.now()}`);
     const data = await res.json();
-    if(Array.isArray(data)){
+    if(Array.isArray(data) && data.length >= shifts.length){
+      // データ件数が減っている場合は上書きしない（保存途中の可能性）
       shifts = data.map(normalizeShift);
       lastSyncTime = new Date();
-      // シフト画面表示中なら再描画
       if(currentTab === "shifts" && !modal) render();
     }
   } catch(e){ console.warn("sync error:", e); }
