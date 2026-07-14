@@ -355,24 +355,37 @@ async function gasPost(action, data) {
   } catch(e) { console.warn("GAS POST:", e); return {error:e.message}; }
 }
 
+async function _fetchAll() {
+  const res = await fetch(GAS_URL + "?action=getAll&t=" + Date.now());
+  const d = await res.json();
+  if(d.error) throw new Error(d.error);
+  if(Array.isArray(d.shifts))   shifts   = d.shifts;
+  if(Array.isArray(d.reports))  reports  = d.reports.map(normalizeReport);
+  if(Array.isArray(d.expenses)) expenses = d.expenses;
+  if(Array.isArray(d.users))    USERS    = d.users;
+  if(Array.isArray(d.clients))  clients  = d.clients;
+  if(Array.isArray(d.projects)) projects = d.projects;
+  if(Array.isArray(d.stores))   STORES   = d.stores;
+}
+
+// 手動リロード（トースト表示あり）
 async function forceReload() {
-  if(isSaving || pendingSaves > 0) { showToast("保存中です。少し待ってから更新してください"); return; }
-  if(GAS_URL.startsWith("★")) { showToast("GAS未設定のためスキップ"); return; }
+  if(GAS_URL.startsWith("★")) { showToast("デモモードです"); return; }
   showToast("最新データを取得中...");
   try {
-    const res = await fetch(GAS_URL + "?action=getAll&t=" + Date.now());
-    const d = await res.json();
-    if(d.error) throw new Error(d.error);
-    if(Array.isArray(d.shifts))   shifts   = d.shifts;
-    if(Array.isArray(d.reports))  reports  = d.reports.map(normalizeReport);
-    if(Array.isArray(d.expenses)) expenses = d.expenses;
-    if(Array.isArray(d.users))    USERS    = d.users;
-    if(Array.isArray(d.clients))  clients  = d.clients;
-    if(Array.isArray(d.projects)) projects = d.projects;
-    if(Array.isArray(d.stores))   STORES   = d.stores;
+    await _fetchAll();
     render();
     showToast("✓ 更新しました");
   } catch(e) { showToast("⚠️ 通信エラー"); console.warn(e); }
+}
+
+// 自動リロード（トースト非表示・シフト保存後用）
+async function forceReloadQuiet() {
+  if(GAS_URL.startsWith("★")) return;
+  try {
+    await _fetchAll();
+    if(TAB==="shifts") render();
+  } catch(e) { console.warn("quiet reload error:", e); }
 }
 
 async function loadAll() {
@@ -708,7 +721,12 @@ function calPrev(){ if(calM===0){calY--;calM=11;}else calM--; calSelD=null; rend
 function calNext(){ if(calM===11){calY++;calM=0;}else calM++; calSelD=null; render(); }
 function startReg(){ calRegMode=true; calSelDates=new Set(); calSelD=null; render(); }
 function cancelRegMode(){ calRegMode=false; calSelDates=new Set(); render(); }
-function deleteShift(id){ shifts=shifts.filter(s=>s.id!==id); render(); isSaving=true; gasPost("deleteShift",{id}).finally(()=>{isSaving=false;}); showToast("シフトを削除しました"); }
+function deleteShift(id){
+  shifts=shifts.filter(s=>s.id!==id); render();
+  gasPost("deleteShift",{id});
+  showToast("シフトを削除しました");
+  setTimeout(forceReloadQuiet, 2000);
+}
 
 function openShiftModal() {
   if(calSelDates.size===0) return;
@@ -808,11 +826,15 @@ function saveDatesShift() {
   closeModal(); render();
   showToast(newShifts.length+" 件登録しました");
 
-  // GAS保存（順番に）
-  isSaving=true; pendingSaves=newShifts.length;
+  // GAS保存（順番に・完了後リロードで確認）
   (async()=>{
-    for(const s of newShifts){ try{ await gasPost("addShift",s); pendingSaves--; }catch(e){console.warn(e);} }
-    isSaving=false; pendingSaves=0;
+    for(const s of newShifts){
+      try{ await gasPost("addShift", s); }
+      catch(e){ console.warn("shift save error:", e); }
+    }
+    // 保存完了後3秒待ってからGASの最新データで確認
+    await new Promise(r=>setTimeout(r,3000));
+    await forceReloadQuiet();
   })();
 }
 
