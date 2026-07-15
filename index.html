@@ -345,9 +345,19 @@ function closeModal() {
 async function gasPost(action, data) {
   if(GAS_URL.startsWith("★")) return {success:true};
   try {
-    const res = await fetch(GAS_URL, {method:"POST", body:JSON.stringify({action,data})});
-    return await res.json();
-  } catch(e) { console.warn("GAS POST:", e); return {error:e.message}; }
+    const res = await fetch(GAS_URL, {
+      method:"POST",
+      body:JSON.stringify({action,data}),
+      headers:{"Content-Type":"text/plain"}
+    });
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch(e) { console.warn("GAS response parse error:", text); return {error:"parse error"}; }
+  } catch(e) {
+    console.warn("GAS POST error:", e);
+    showToast("⚠️ 通信エラー: " + e.message);
+    return {error:e.message};
+  }
 }
 
 
@@ -787,10 +797,12 @@ function saveDatesShift() {
 
   // GAS保存（順番に・完了後リロードで確認）
   (async()=>{
+    let failed = 0;
     for(const s of newShifts){
-      try{ await gasPost("addShift", s); }
-      catch(e){ console.warn("shift save error:", e); }
+      const r = await gasPost("addShift", s);
+      if(r?.error) failed++;
     }
+    if(failed > 0) showToast("⚠️ " + failed + "件の保存に失敗しました");
   })();
 }
 
