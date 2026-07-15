@@ -441,7 +441,7 @@ function render() {
   const nav = `<nav class="top-nav"><div class="nav-tabs">${
     tabs.map(t => {
       const active = (!DETAIL_PROJ && TAB===t.id) ? " active" : "";
-      return `<button class="nav-btn${active}" onclick="goTab('${t.id}')">${t.icon}<span>${t.label}</span></button>`;
+      return `<button class="nav-btn${active}" data-tabid="${t.id}" onclick="goTab(this.dataset.tabid)">${t.icon}<span>${t.label}</span></button>`;
     }).join("")
   }</div></nav>`;
 
@@ -559,27 +559,27 @@ function renderProjects() {
     ${projTabState==="クライアント"&&isAdmin ? clients.map(cl=>`
       <div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div style="font-size:14px;font-weight:800">${cl.company}</div>
-        <button class="btn" style="background:var(--sky-l);color:var(--sky);padding:5px 10px;font-size:11px" onclick="openEditClient('${cl.id}')">編集</button>
+        <button class="btn" style="background:var(--sky-l);color:var(--sky);padding:5px 10px;font-size:11px" data-id="${cl.id}" onclick="openEditClient(this.dataset.id)">編集</button>
       </div>
       <div style="font-size:12px;color:var(--sub)">👤 ${cl.contact} &nbsp;📞 ${cl.tel||""}</div>
       <div style="font-size:12px;color:var(--muted);margin-top:2px">✉️ ${cl.mail||""}</div>
       <div style="font-size:11px;color:var(--muted);margin-top:6px">関連案件: ${projects.filter(p=>p.clientId===cl.id).length} 件</div>
       </div>`).join("") : `
-    <div class="pills">${stats.map(s=>`<button class="pill${projFilter===s?" on":""}" onclick="projFilter='${s}';render()">${s}</button>`).join("")}</div>
+    <div class="pills">${stats.map(s=>`<button class="pill${projFilter===s?" on":""}" data-f="${s}" onclick="projFilter=this.dataset.f;render()">${s}</button>`).join("")}</div>
     ${prjs.map(p=>{
       const cl=clients.find(c=>c.id===p.clientId); const sts=STORES.filter(s=>s.projId===p.id);
       return `<div class="card">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
-          <div style="flex:1;min-width:0;cursor:pointer" onclick="openProjDetail('${p.id}')">
+          <div style="flex:1;min-width:0;cursor:pointer" data-id="${p.id}" onclick="openProjDetail(this.dataset.id)">
             <div style="font-size:14px;font-weight:800;line-height:1.3">${p.name}</div>
             <div style="font-size:12px;color:var(--sub);margin-top:2px">${cl?.company||""}</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
             ${statusBadge(p.status)}
-            ${isAdmin?`<button class="btn" style="background:var(--sky-l);color:var(--sky);padding:5px 10px;font-size:11px" onclick="openEditProject('${p.id}')">編集</button>`:""}
+            ${isAdmin?`<button class="btn" style="background:var(--sky-l);color:var(--sky);padding:5px 10px;font-size:11px" data-id="${p.id}" onclick="openEditProject(this.dataset.id)">編集</button>`:""}
           </div>
         </div>
-        <div style="font-size:12px;color:var(--muted);cursor:pointer" onclick="openProjDetail('${p.id}')">${fmtDate(p.start)} 〜 ${fmtDate(p.end)} · ${sts.length} 店舗</div>
+        <div style="font-size:12px;color:var(--muted);cursor:pointer" data-id="${p.id}" onclick="openProjDetail(this.dataset.id)">${fmtDate(p.start)} 〜 ${fmtDate(p.end)} · ${sts.length} 店舗</div>
       </div>`;
     }).join("")}
     ${prjs.length===0?`<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:14px">該当する案件がありません</div>`:""}`}
@@ -610,7 +610,7 @@ function renderProjDetail() {
     ${isAdmin?`<div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">ステータス変更</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       ${["商談中","契約済","稼働中","終了"].map(s=>`
-      <button style="padding:6px 12px;border-radius:100px;border:2px solid ${p.status===s?"var(--sky)":"var(--border)"};background:${p.status===s?"var(--sky)":"#fff"};color:${p.status===s?"#fff":"var(--sub)"};font-size:12px;font-weight:700;font-family:inherit;cursor:pointer" onclick="changeStatus('${p.id}','${s}')">${s}</button>`).join("")}
+      <button style="padding:6px 12px;border-radius:100px;border:2px solid ${p.status===s?"var(--sky)":"var(--border)"};background:${p.status===s?"var(--sky)":"#fff"};color:${p.status===s?"#fff":"var(--sub)"};font-size:12px;font-weight:700;font-family:inherit;cursor:pointer" data-pid="${p.id}" data-st="${s}" onclick="changeStatus(this.dataset.pid,this.dataset.st)">${s}</button>`).join("")}
     </div></div>`:""}
     </div>
     <div class="sg" style="grid-template-columns:1fr 1fr 1fr">
@@ -649,7 +649,7 @@ function renderShifts() {
       <div style="font-size:16px;font-weight:900">${calSelDates.size} 日選択済み</div></div>
       <div style="display:flex;gap:8px">
         <button onclick="cancelRegMode()" style="background:rgba(255,255,255,.2);border:none;border-radius:9px;padding:7px 11px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">キャンセル</button>
-        <button onclick="openShiftModal()" ${calSelDates.size===0?"disabled":""} style="background:#fff;border:none;border-radius:9px;padding:7px 13px;color:var(--sky);font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;opacity:${calSelDates.size===0?.4:1}">次へ →</button>
+        <button onclick="openShiftModal()" id="reg-next-btn" style="background:#fff;border:none;border-radius:9px;padding:7px 13px;color:var(--sky);font-size:12px;font-weight:800;cursor:pointer;font-family:inherit">次へ →</button>
       </div>
     </div>
   </div>` : "";
@@ -687,7 +687,7 @@ function renderShifts() {
       }).join("");
       const isSel = !calRegMode && calSelD===d;
       const isReg = calRegMode && calSelDates.has(ds);
-      return `<div class="cd${isSel?" sel":""}${isReg?" regsel":""}" onclick="calClick(${d},'${ds}')">
+      return `<div class="cd${isSel?" sel":""}${isReg?" regsel":""}" data-d="${d}" data-ds="${ds}" onclick="calClick(+this.dataset.d,this.dataset.ds)">
         <div class="dn${ds===td?" today":dow===0?" sun":dow===6?" sat":""}">${d}</div>
         <div class="bars">${bars}</div>
       </div>`;
@@ -710,7 +710,7 @@ function renderDayDetail() {
         </div>
         ${!isHol&&p?`<div style="font-size:12px;color:var(--sub)">${p.name}</div><div style="font-size:11px;color:var(--muted)">${st?.name||""} ${cl_of(p)}</div>`:""}
         </div>
-        <button onclick="deleteShift('${s.id}')" style="background:none;border:none;cursor:pointer;color:#CBD5E1;padding:4px">${ICO.x}</button>
+        <button data-id="${s.id}" onclick="deleteShift(this.dataset.id)" style="background:none;border:none;cursor:pointer;color:#CBD5E1;padding:4px">${ICO.x}</button>
       </div>`;
     }).join("")}
   </div>`;
@@ -744,7 +744,7 @@ function openShiftModal() {
     </div>
     <div style="margin-bottom:12px"><label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:5px">種別</label>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px" id="sf-types">
-        ${SHIFT_TYPES.map(t=>`<button type="button" class="sf-type-btn${t==="勤務"?" selected":""}" data-t="${t}" onclick="setSfType('${t}')" style="padding:8px 2px;border-radius:9px;border:2px solid ${t==="勤務"?"var(--sky)":"var(--border)"};background:${t==="勤務"?"var(--sky)":"#fff"};color:${t==="勤務"?"#fff":"var(--sub)"};font-size:11px;font-weight:700;font-family:inherit;cursor:pointer">${t}</button>`).join("")}
+        ${SHIFT_TYPES.map(t=>`<button type="button" class="sf-type-btn${t==="勤務"?" selected":""}" data-t="${t}" data-t="${t}" onclick="setSfType(this.dataset.t)" style="padding:8px 2px;border-radius:9px;border:2px solid ${t==="勤務"?"var(--sky)":"var(--border)"};background:${t==="勤務"?"var(--sky)":"#fff"};color:${t==="勤務"?"#fff":"var(--sub)"};font-size:11px;font-weight:700;font-family:inherit;cursor:pointer">${t}</button>`).join("")}
       </div>
     </div>
     <div id="sf-excl-wrap" style="margin-bottom:12px">
@@ -849,7 +849,7 @@ function renderReports() {
   <button class="fab" onclick="openReportModal()">${ICO.plus}</button>
   <div class="cp" style="margin-top:10px">
     ${myR.map(r=>{ const u=USERS.find(u=>u.email===r.uid); const p=projects.find(p=>p.id===r.projId); const st=STORES.find(s=>s.id===r.storeId); const c=gc(u?.color||"sky");
-      return `<div class="card tap" onclick="openReportDetail('${r.id}')">
+      return `<div class="card tap" data-id="${r.id}" onclick="openReportDetail(this.dataset.id)">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <div><div style="font-size:11px;color:var(--muted)">${r.date}</div>
           ${isAdmin?`<div style="font-size:12px;font-weight:700;color:${c.bg}">${u?.name||""}</div>`:""}
@@ -927,7 +927,7 @@ function openReportModal() {
       <div id="rp-others"></div>
     </div>
     <div class="field"><label>コメント</label><textarea id="rp-note" rows="3" placeholder="本日の所感など"></textarea></div>
-    <button type="button" class="btn btn-p btn-f" onclick="saveReport('${todayS?.projId||""}','${todayS?.storeId||""}')">提出する</button>
+    <button type="button" class="btn btn-p btn-f" data-proj="${todayS?.projId||''}" data-store="${todayS?.storeId||''}" onclick="saveReport(this.dataset.proj,this.dataset.store)">提出する</button>
   </div>`);
 }
 function rpProjChange(){ const pid=document.getElementById("rp-proj-a")?.value; const sts=STORES.filter(s=>s.projId===pid); const sel=document.getElementById("rp-store-a"); if(sel) sel.innerHTML=`<option value="">選択してください</option>${sts.map(s=>`<option value="${s.id}">${s.name}</option>`).join("")}`; }
@@ -965,10 +965,10 @@ function renderExpenses(){
   </div>
   <button class="fab" onclick="openExpModal()">${ICO.plus}</button>
   <div class="cp" style="margin-top:10px">
-    <div class="pills">${filters.map(f=>`<button class="pill${expFilter===f?" on":""}" onclick="expFilter='${f}';render()">${f}${f==="申請中"&&pendCnt>0?`<span style="margin-left:4px;background:#F59E0B;color:#fff;font-size:10px;border-radius:100px;padding:1px 5px">${pendCnt}</span>`:""}</button>`).join("")}</div>
+    <div class="pills">${filters.map(f=>`<button class="pill${expFilter===f?" on":""}" data-f="${f}" onclick="expFilter=this.dataset.f;render()">${f}${f==="申請中"&&pendCnt>0?`<span style="margin-left:4px;background:#F59E0B;color:#fff;font-size:10px;border-radius:100px;padding:1px 5px">${pendCnt}</span>`:""}</button>`).join("")}</div>
     <div class="sum"><span style="font-size:12px;color:var(--sky-d);font-weight:600">${filt.length} 件</span><span style="font-size:15px;font-weight:800;color:var(--sky)">合計 ¥${fmt(total)}</span></div>
     ${filt.map(e=>{ const u=USERS.find(u=>u.email===e.uid); const p=projects.find(p=>p.id===e.projId); const c=gc(u?.color||"sky");
-      return `<div class="card tap" onclick="openExpDetail('${e.id}')">
+      return `<div class="card tap" data-id="${e.id}" onclick="openExpDetail(this.dataset.id)">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px">
           <div style="flex:1;min-width:0;margin-right:8px">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
@@ -1007,8 +1007,8 @@ function openExpDetail(id){
     <div class="rp" style="margin-bottom:12px"><img src="${e.receiptPreview}"/><div class="ro"><span style="color:rgba(255,255,255,.8);font-size:12px">Drive に保存済み ✓</span></div></div>`
     :`<div style="background:#F8FDFE;border-radius:12px;padding:13px;text-align:center;font-size:13px;color:var(--muted);margin-bottom:12px">領収書なし</div>`}
     ${isAdmin&&(e.status==="申請中")?`<div style="display:flex;gap:10px">
-      <button type="button" class="btn btn-g" style="flex:1;justify-content:center" onclick="approveExp('${e.id}')">${ICO.check} 承認</button>
-      <button type="button" class="btn btn-r" style="flex:1;justify-content:center" onclick="rejectExp('${e.id}')">${ICO.x} 差戻し</button>
+      <button type="button" class="btn btn-g" style="flex:1;justify-content:center" data-id="${e.id}" onclick="approveExp(this.dataset.id)">${ICO.check} 承認</button>
+      <button type="button" class="btn btn-r" style="flex:1;justify-content:center" data-id="${e.id}" onclick="rejectExp(this.dataset.id)">${ICO.x} 差戻し</button>
     </div>`:""}
   </div>`);
 }
@@ -1060,7 +1060,7 @@ function openEditClient(id){
     <div class="field"><label>担当者名</label><input type="text" id="ec-ct" value="${cl.contact||""}"></div>
     <div class="field"><label>電話番号</label><input type="tel" id="ec-tel" value="${cl.tel||""}"></div>
     <div class="field"><label>メールアドレス</label><input type="email" id="ec-mail" value="${cl.mail||""}"></div>
-    <button type="button" class="btn btn-p btn-f" onclick="saveEditClient('${id}')">保存する</button>
+    <button type="button" class="btn btn-p btn-f" data-id="${id}" onclick="saveEditClient(this.dataset.id)">保存する</button>
   </div>`);
 }
 function saveEditClient(id){
@@ -1112,12 +1112,12 @@ function openEditProject(id){
     <div class="sl" style="margin-top:4px">店舗</div>
     <div id="pj-stores"></div>
     <div class="store-input-wrap">
-      <div class="store-row"><input type="text" id="pj-sname" placeholder="店舗名 *"><button type="button" onclick="addTmpStore('${id}')">追加</button></div>
+      <div class="store-row"><input type="text" id="pj-sname" placeholder="店舗名 *"><button type="button" data-pid="${id}" onclick="addTmpStore(this.dataset.pid)">追加</button></div>
       <input type="text" id="pj-saddr" placeholder="住所（任意）" class="store-addr">
     </div>
     <div class="sl">担当スタッフ</div>
     <div class="sp-wrap">${USERS.map(u=>{ const c=gc(u.color); const sel=tempUsers.includes(u.email); return `<button type="button" class="sp" data-email="${u.email}" data-bg="${c.bg}" onclick="togUser(this)" style="${sel?"background:"+c.bg+";color:#fff;border-color:"+c.bg:""}">${u.name}</button>`; }).join("")}</div>
-    <button type="button" class="btn btn-p btn-f" onclick="saveProject('${id}')">保存する</button>
+    <button type="button" class="btn btn-p btn-f" data-id="${id}" onclick="saveProject(this.dataset.id)">保存する</button>
   </div>`);
   renderTmpStores();
 }
@@ -1183,7 +1183,7 @@ function renderReg1(){return `<button type="button" class="backbtn" onclick="log
 function goReg2(){const n=(document.getElementById("rg-name")?.value||"").trim();if(!n)return;regForm.name=n;regForm.phone=document.getElementById("rg-phone")?.value||"";regStep=2;renderRegister();}
 function renderReg2(){return `<button type="button" class="backbtn" onclick="regStep=1;renderRegister()">← 基本情報に戻る</button>
   <p style="font-size:13px;color:var(--sub);margin-bottom:14px">カレンダーやカードに表示される色です</p>
-  <div class="color-grid">${COLORS.map(col=>`<div class="copt${regForm.color===col.id?" sel":""}" style="background:${col.bg}" onclick="regForm.color='${col.id}';renderRegister()"><span>${col.label}</span></div>`).join("")}</div>
+  <div class="color-grid">${COLORS.map(col=>`<div class="copt${regForm.color===col.id?" sel":""}" style="background:${col.bg}" data-cid="${col.id}" onclick="regForm.color=this.dataset.cid;renderRegister()"><span>${col.label}</span></div>`).join("")}</div>
   <div style="display:flex;align-items:center;gap:10px;background:var(--sky-l);border-radius:13px;padding:11px 14px;margin-bottom:14px">
     ${av({name:regForm.name||"?",color:regForm.color},40)}
     <div><div style="font-size:13px;font-weight:700">${regForm.name}</div><div style="font-size:11px;color:var(--sub)">${gc(regForm.color).label}</div></div>
@@ -1212,7 +1212,7 @@ function renderDemo(){
     <div style="text-align:center;margin-bottom:28px"><div style="font-size:40px;font-weight:900;color:#fff">Bizflow</div><div style="font-size:13px;color:rgba(255,255,255,.7)">デモモード</div></div>
     <div class="lcard">
       <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px">ユーザーを選択</div>
-      ${USERS.map(u=>{const c=gc(u.color);return`<button type="button" class="lub" onclick="demoLogin('${u.email}')"><div class="av" style="width:40px;height:40px;background:${c.light};color:${c.text};font-size:15px">${u.name[0]}</div><div><div style="font-size:14px;font-weight:700;color:var(--txt)">${u.name}</div><div style="font-size:11px;color:var(--muted)">${u.role}</div></div></button>`;}).join("")}
+      ${USERS.map(u=>{const c=gc(u.color);return`<button type="button" class="lub" data-email="${u.email}" onclick="demoLogin(this.dataset.email)"><div class="av" style="width:40px;height:40px;background:${c.light};color:${c.text};font-size:15px">${u.name[0]}</div><div><div style="font-size:14px;font-weight:700;color:var(--txt)">${u.name}</div><div style="font-size:11px;color:var(--muted)">${u.role}</div></div></button>`;}).join("")}
       <button type="button" onclick="loginStep='email';renderLogin()" style="width:100%;margin-top:8px;padding:11px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">← メールアドレスで試す</button>
     </div>
   </div>`;}
