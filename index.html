@@ -873,10 +873,20 @@ function openReportDetail(id) {
   </div>`);
 }
 
+function getStaffShiftProjects(uid) {
+  // そのスタッフの今日のシフトから案件・店舗を取得
+  const td = today();
+  const s = shifts.find(sh=>sh.uid===uid&&sh.date===td&&sh.type==="勤務");
+  return {
+    shift: s||null,
+    proj: s?projects.find(p=>p.id===s.projId):null,
+    store: s?STORES.find(st=>st.id===s.storeId):null,
+  };
+}
+
 function openReportModal() {
   const isAdmin = CU.role==="Admin"; const td=today();
-  const todayS = shifts.find(s=>s.uid===CU.email&&s.date===td&&s.type==="勤務");
-  const proj=todayS?projects.find(p=>p.id===todayS.projId):null; const store=todayS?STORES.find(s=>s.id===todayS.storeId):null;
+  const {shift:todayS, proj, store} = getStaffShiftProjects(CU.email);
   reportOthers = [];
   const allP = projects; const allU = USERS.filter(u=>u.role==="Employee");
   openModal(`<div class="sh-head"><h2>日報提出</h2><button class="sh-close" onclick="closeModal()">${ICO.x}</button></div>
@@ -884,10 +894,16 @@ function openReportModal() {
     ${isAdmin?`<div style="background:var(--sky-l);border-radius:12px;padding:11px 13px;margin-bottom:12px">
       <div style="font-size:11px;font-weight:700;color:var(--sky-d);margin-bottom:7px">管理者入力モード</div>
       <div class="field" style="margin-bottom:8px"><label>スタッフ</label>
-        <select id="rp-staff"><option value="${CU.email}">${CU.name}（自分）</option>${allU.map(u=>`<option value="${u.email}">${u.name}</option>`).join("")}</select>
+        <select id="rp-staff" onchange="rpStaffChange(this.value)">
+          <option value="${CU.email}">${CU.name}（自分）</option>
+          ${allU.map(u=>`<option value="${u.email}">${u.name}</option>`).join("")}
+        </select>
       </div>
-      <div class="field" style="margin-bottom:8px"><label>案件</label>
-        <select id="rp-proj-a" onchange="rpProjChange()"><option value="">選択してください</option>${allP.map(p=>`<option value="${p.id}">${p.name}</option>`).join("")}</select>
+      <div class="field" style="margin-bottom:8px"><label>案件 <span style="font-size:10px;color:var(--muted)">(当日シフトから自動選択)</span></label>
+        <select id="rp-proj-a" onchange="rpProjChange()">
+          <option value="">選択してください</option>
+          ${allP.map(p=>`<option value="${p.id}">${p.name}</option>`).join("")}
+        </select>
       </div>
       <div class="field" style="margin-bottom:0"><label>店舗</label>
         <select id="rp-store-a"><option value="">案件を先に選択</option></select>
@@ -912,6 +928,22 @@ function openReportModal() {
     <div class="field"><label>コメント</label><textarea id="rp-note" rows="3" placeholder="本日の所感など"></textarea></div>
     <button type="button" class="btn btn-p btn-f" data-proj="${todayS?.projId||''}" data-store="${todayS?.storeId||''}" onclick="saveReport(this.dataset.proj,this.dataset.store)">提出する</button>
   </div>`);
+}
+function rpStaffChange(uid) {
+  const {shift, proj, store} = getStaffShiftProjects(uid);
+  const projSel = document.getElementById("rp-proj-a");
+  const storeSel = document.getElementById("rp-store-a");
+  if(projSel && proj) {
+    projSel.value = proj.id;
+    // 店舗リストを更新
+    const sts = STORES.filter(s=>s.projId===proj.id);
+    if(storeSel) {
+      storeSel.innerHTML = `<option value="">選択してください</option>${sts.map(s=>`<option value="${s.id}"${s.id===store?.id?" selected":""}>${s.name}</option>`).join("")}`;
+    }
+  } else if(projSel) {
+    projSel.value = "";
+    if(storeSel) storeSel.innerHTML = `<option value="">案件を先に選択</option>`;
+  }
 }
 function rpProjChange(){ const pid=document.getElementById("rp-proj-a")?.value; const sts=STORES.filter(s=>s.projId===pid); const sel=document.getElementById("rp-store-a"); if(sel) sel.innerHTML=`<option value="">選択してください</option>${sts.map(s=>`<option value="${s.id}">${s.name}</option>`).join("")}`; }
 function addOther(){ const i=reportOthers.length; reportOthers.push({name:"",cnt:0}); const w=document.getElementById("rp-others"); if(!w) return; const d=document.createElement("div"); d.className="oi"; d.id="roi"+i; d.innerHTML=`<input type="text" placeholder="商材名" oninput="reportOthers[${i}].name=this.value"><input type="number" min="0" value="0" oninput="reportOthers[${i}].cnt=+this.value"><span style="font-size:12px;color:var(--muted)">件</span><button type="button" onclick="reportOthers[${i}]=null;document.getElementById('roi${i}').remove()" style="background:none;border:none;cursor:pointer;color:#CBD5E1">${ICO.x}</button>`; w.appendChild(d); }
@@ -1006,7 +1038,7 @@ function openExpModal(){
     ${isAdmin?`<div class="field"><label>申請スタッフ</label><select id="ep-staff"><option value="${CU.email}">${CU.name}（自分）</option>${empsE.map(u=>`<option value="${u.email}">${u.name}</option>`).join("")}</select></div>`:""}
     <div class="field"><label>日付</label><input type="date" id="ep-date" value="${today()}"></div>
     <div class="tog"><button type="button" class="on" id="ep-t-proj" onclick="epTog(false,this)">案件に紐付ける</button><button type="button" id="ep-t-other" onclick="epTog(true,this)">案件外</button></div>
-    <div id="ep-proj-wrap" class="field"><label>案件</label><select id="ep-proj"><option value="">選択してください</option>${aP.map(p=>`<option value="${p.id}">${p.name}</option>`).join("")}</select></div>
+    <div id="ep-proj-wrap" class="field" style="display:block"><label>案件</label><select id="ep-proj"><option value="">選択してください</option>${projects.map(p=>`<option value="${p.id}">${p.name}${p.status!=="稼働中"?" ("+p.status+")":""}</option>`).join("")}</select></div>
     <div class="field"><label>カテゴリ</label><select id="ep-cat"><option value="">選択してください</option>${EXP_CATS.map(c=>`<option value="${c}">${c}</option>`).join("")}</select></div>
     <div class="field"><label>金額 (円)</label><input type="number" id="ep-amt" min="0" placeholder="例: 1200"></div>
     <div class="field"><label>内容</label><input type="text" id="ep-note" placeholder="例: 交通費（渋谷往復）"></div>
