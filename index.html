@@ -736,10 +736,10 @@ function openShiftModal() {
       <div class="wday-row">${WDAYS.map((w,i)=>`<button type="button" class="wd on${i===0?" sun":i===6?" sat":""}" id="wd${i}" onclick="toggleWd(${i})">${w}</button>`).join("")}</div>
     </div>
     <div id="sf-proj-wrap">
-      <div class="field"><label id="sf-proj-label">案件</label>
+      <div class="field"><label id="sf-proj-label">案件（任意）</label>
         <select id="sf-proj" onchange="sfProjChange()"><option value="">選択してください</option>${allProjs.map(p=>`<option value="${p.id}">${p.name}${p.status!=="稼働中"?" ("+p.status+")":""}</option>`).join("")}</select>
       </div>
-      <div class="field"><label>店舗</label><select id="sf-store"><option value="">案件を先に選択</option></select></div>
+      <div class="field"><label>店舗（任意）</label><select id="sf-store"><option value="">案件を先に選択</option></select></div>
     </div>
     <div class="rp-box" id="sf-preview" style="display:none"><span style="font-size:12px;color:var(--sky-d);font-weight:600">登録予定</span><span style="font-size:20px;font-weight:900;color:var(--sky)" id="sf-cnt">${sorted.length}</span></div>
     <button type="button" class="btn btn-p btn-f" onclick="saveDatesShift()">登録する</button>
@@ -795,7 +795,7 @@ function saveDatesShift() {
   if(!uid) { showToast("スタッフを選択してください"); return; }
   const projId = (sfType==="公休"||sfType==="内勤") ? "" : (document.getElementById("sf-proj")?.value||"");
   const storeId = sfType==="勤務" ? (document.getElementById("sf-store")?.value||"") : "";
-  if(sfType==="勤務"&&!storeId) { showToast("案件と店舗を選択してください"); return; }
+  // 店舗は任意
 
   const newShifts = [];
   [...calSelDates].sort().forEach(ds=>{
@@ -1025,8 +1025,74 @@ function openExpDetail(id){
       <button type="button" class="btn btn-g" style="flex:1;justify-content:center" data-id="${e.id}" onclick="approveExp(this.dataset.id)">${ICO.check} 承認</button>
       <button type="button" class="btn btn-r" style="flex:1;justify-content:center" data-id="${e.id}" onclick="rejectExp(this.dataset.id)">${ICO.x} 差戻し</button>
     </div>`:""}
+    ${(e.status==="差戻し"&&(e.uid===CU.email||CU.role==="Admin"))?`
+    <div style="margin-top:8px">
+      <div class="alert alert-a" style="margin-bottom:8px">${ICO.bell}<span style="font-size:12px">差戻しされています。内容を修正して再申請してください。</span></div>
+      <button type="button" class="btn btn-p btn-f" data-id="${e.id}" onclick="openEditExp(this.dataset.id)">✏️ 再編集して再申請</button>
+    </div>`:""}
   </div>`);
 }
+function openEditExp(id) {
+  const e = expenses.find(e=>e.id===id);
+  if(!e) return;
+  closeModal();
+  expReceiptData = e.receiptPreview ? {preview:e.receiptPreview, url:e.receiptURL} : null;
+  epIsOther = !e.projId;
+  const aP = projects;
+  openModal(`<div class="sh-head"><h2>経費を再編集</h2><button class="sh-close" onclick="closeModal()">${ICO.x}</button></div>
+  <div class="sh-body">
+    <div class="alert alert-a" style="margin-bottom:12px">${ICO.bell}<span style="font-size:12px">差戻し済み — 修正して再申請してください</span></div>
+    <div class="field"><label>日付</label><input type="date" id="ep-date" value="${e.date||today()}"></div>
+    <div class="tog">
+      <button type="button" class="${!e.projId?"":"on"}" id="ep-t-proj" onclick="epTog(false,this)">案件に紐付ける</button>
+      <button type="button" class="${!e.projId?"on":""}" id="ep-t-other" onclick="epTog(true,this)">案件外</button>
+    </div>
+    <div id="ep-proj-wrap" class="field" style="display:${e.projId?"block":"none"}"><label>案件</label>
+      <select id="ep-proj">
+        <option value="">選択してください</option>
+        ${aP.map(p=>`<option value="${p.id}"${p.id===e.projId?" selected":""}>${p.name}</option>`).join("")}
+      </select>
+    </div>
+    <div class="field"><label>カテゴリ</label>
+      <select id="ep-cat">
+        <option value="">選択してください</option>
+        ${EXP_CATS.map(cat=>`<option value="${cat}"${cat===e.cat?" selected":""}>${cat}</option>`).join("")}
+      </select>
+    </div>
+    <div class="field"><label>金額 (円)</label><input type="number" id="ep-amt" min="0" value="${e.amt||0}"></div>
+    <div class="field"><label>内容</label><input type="text" id="ep-note" value="${e.note||""}"></div>
+    <div style="margin-bottom:12px">
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:5px">領収書</label>
+      <div id="ep-receipt-area">
+        ${e.receiptPreview
+          ? `<div class="rp"><img src="${e.receiptPreview}" style="width:100%;height:140px;object-fit:cover;display:block"/><div class="ro"><span style="color:rgba(255,255,255,.8);font-size:12px">添付済み ✓</span></div></div>`
+          : `<label class="ru" for="ep-file">${ICO.cam}<div style="font-size:13px;color:var(--sub);font-weight:600;margin-top:6px">カメラ撮影 / ギャラリーから選択</div></label>
+             <input type="file" id="ep-file" accept="image/*" capture="environment" style="display:none" onchange="epFile(this)">`}
+      </div>
+    </div>
+    <button type="button" class="btn btn-p btn-f" data-id="${e.id}" onclick="saveEditExp(this.dataset.id)">再申請する</button>
+  </div>`);
+}
+
+function saveEditExp(id) {
+  const projId = epIsOther ? null : (document.getElementById("ep-proj")?.value||null);
+  const cat  = document.getElementById("ep-cat")?.value;
+  const amt  = document.getElementById("ep-amt")?.value;
+  const note = document.getElementById("ep-note")?.value;
+  if((!epIsOther&&!projId)||!cat||!amt||!note) { showToast("必須項目を入力してください"); return; }
+  const updated = {
+    id, projId:projId||null, cat, amt:+amt, note,
+    date: document.getElementById("ep-date")?.value||today(),
+    status: "申請中",   // 再申請で申請中に戻す
+    receiptURL:     expReceiptData?.url     || null,
+    receiptPreview: expReceiptData?.preview || null,
+  };
+  expenses = expenses.map(e => e.id===id ? {...e,...updated} : e);
+  gasPost("updateExpense", updated);
+  epIsOther=false; expReceiptData=null;
+  closeModal(); render(); showToast("再申請しました");
+}
+
 function approveExp(id){ expenses=expenses.map(e=>e.id===id?{...e,status:"承認"}:e); gasPost("updateExpenseStatus",{id,status:"承認"}); closeModal(); render(); showToast("承認しました"); }
 function rejectExp(id){  expenses=expenses.map(e=>e.id===id?{...e,status:"差戻し"}:e); gasPost("updateExpenseStatus",{id,status:"差戻し"}); closeModal(); render(); showToast("差し戻しました"); }
 
@@ -1098,7 +1164,7 @@ function openAddProject(){
     </div>
     <div class="field"><label>単価 (円)</label><input type="number" id="pj-price" placeholder="例: 150000"></div>
     <div class="field"><label>ステータス</label><select id="pj-status"><option value="商談中">商談中</option><option value="契約済">契約済</option><option value="稼働中">稼働中</option><option value="終了">終了</option></select></div>
-    <div class="sl" style="margin-top:4px">店舗</div>
+    <div class="sl" style="margin-top:4px">店舗（任意）</div>
     <div id="pj-stores"></div>
     <div class="store-input-wrap">
       <div class="store-row"><input type="text" id="pj-sname" placeholder="店舗名 *"><button type="button" onclick="addTmpStore(null)">追加</button></div>
@@ -1124,7 +1190,7 @@ function openEditProject(id){
     </div>
     <div class="field"><label>単価 (円)</label><input type="number" id="pj-price" value="${p.price||0}"></div>
     <div class="field"><label>ステータス</label><select id="pj-status">${["商談中","契約済","稼働中","終了"].map(s=>`<option value="${s}"${s===p.status?" selected":""}>${s}</option>`).join("")}</select></div>
-    <div class="sl" style="margin-top:4px">店舗</div>
+    <div class="sl" style="margin-top:4px">店舗（任意）</div>
     <div id="pj-stores"></div>
     <div class="store-input-wrap">
       <div class="store-row"><input type="text" id="pj-sname" placeholder="店舗名 *"><button type="button" data-pid="${id}" onclick="addTmpStore(this.dataset.pid)">追加</button></div>
