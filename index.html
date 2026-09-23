@@ -315,6 +315,11 @@ let epIsOther = false;
 let projTabState = "案件";
 let projFilter = "全て";
 let expFilter = "全て";
+let expStaffFilter = "全て"; // 経費スタッフフィルター
+
+// 月フィルター（共通）
+let filterYear  = new Date().getFullYear();
+let filterMonth = new Date().getMonth() + 1; // 1-12
 
 // ══ TOAST ══════════════════════════════════════════════════════
 let toastTimer = null;
@@ -444,24 +449,48 @@ function render() {
 
 function goTab(id) { DETAIL_PROJ=null; TAB=id; render(); }
 
+function monthNav() {
+  return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <button onclick="changeMonth(-1)" style="background:var(--sky-l);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sky);font-family:inherit">◀</button>
+    <div style="flex:1;text-align:center;font-size:15px;font-weight:800;color:var(--txt)">${filterYear}年 ${filterMonth}月</div>
+    <button onclick="changeMonth(1)" style="background:var(--sky-l);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sky);font-family:inherit">▶</button>
+  </div>`;
+}
+
+function changeMonth(delta) {
+  filterMonth += delta;
+  if(filterMonth > 12) { filterMonth = 1; filterYear++; }
+  if(filterMonth < 1)  { filterMonth = 12; filterYear--; }
+  render();
+}
+
+function inFilterMonth(dateStr) {
+  if(!dateStr) return false;
+  const s = String(dateStr).slice(0,7); // "YYYY-MM"
+  return s === filterYear + "-" + String(filterMonth).padStart(2,"0");
+}
+
 // ══ DASHBOARD ══════════════════════════════════════════════════
 function renderDash() {
   const td = today();
   const active = projects.filter(p=>p.status==="稼働中").length;
   const todayS = shifts.filter(s=>s.date===td&&s.type==="勤務").length;
   const pending = expenses.filter(e=>e.status==="申請中").length;
-  const totalNew  = reports.reduce((a,r)=>a+(+r.new_||0),0);
-  const totalMNP  = reports.reduce((a,r)=>a+(+r.mnp||0),0);
-  const totalBB   = reports.reduce((a,r)=>a+(+r.bb||0),0);
-  const totalEl   = reports.reduce((a,r)=>a+(+r.elec||0),0);
-  const totalCard = reports.reduce((a,r)=>a+(+r.card||0),0);
-  const totalUC   = reports.reduce((a,r)=>a+(+r.uc||0),0);
+  // 月フィルター適用
+  const mReps = reports.filter(r=>inFilterMonth(r.date));
+  const totalNew  = mReps.reduce((a,r)=>a+(+r.new_||0),0);
+  const totalMNP  = mReps.reduce((a,r)=>a+(+r.mnp||0),0);
+  const totalBB   = mReps.reduce((a,r)=>a+(+r.bb||0),0);
+  const totalEl   = mReps.reduce((a,r)=>a+(+r.elec||0),0);
+  const totalCard = mReps.reduce((a,r)=>a+(+r.card||0),0);
+  const totalUC   = mReps.reduce((a,r)=>a+(+r.uc||0),0);
   const emps = USERS.filter(u=>u.role==="Employee");
   return `
   <div class="ph"><div class="deco"></div><div class="deco2"></div>
     <div class="ph-row"><div><div class="ey">管理者ダッシュボード</div><h1>${CU.name} さん</h1><div class="sb">${td}</div></div></div>
   </div>
   <div class="cp" style="margin-top:10px">
+    ${monthNav()}
     ${pending>0?`<div class="alert alert-a">${ICO.bell}<span>経費承認待ちが <strong>${pending}</strong> 件あります</span></div>`:""}
     <div class="sg">
       <div class="sc"><div class="l">稼働案件</div><div class="v" style="color:var(--sky)">${active}</div><div class="u">件</div></div>
@@ -475,7 +504,7 @@ function renderDash() {
     </div>
     <div class="sl">スタッフ別 今月実績</div>
     ${emps.map(u=>{
-      const c=gc(u.color); const rs=reports.filter(r=>r.uid===u.email);
+      const c=gc(u.color); const rs=mReps.filter(r=>r.uid===u.email);
       const tot=rs.reduce((a,r)=>a+(+r.new_||0)+(+r.mnp||0),0);
       return `<div class="card" style="display:flex;align-items:center;gap:12px">${av(u)}<div style="flex:1"><div style="font-size:14px;font-weight:700">${u.name}</div><div style="font-size:12px;color:var(--sub)">新規+MNP: ${tot} 件</div></div><div style="font-size:22px;font-weight:900;color:${c.bg}">${tot}</div></div>`;
     }).join("")}
@@ -522,10 +551,23 @@ function renderHome() {
 }
 
 // ══ PROJECTS ═══════════════════════════════════════════════════
+function inFilterMonthProj(p) {
+  // 案件の期間がフィルター月と重なっているか
+  const ym = filterYear + "-" + String(filterMonth).padStart(2,"0");
+  const ymStart = (p.start||"").slice(0,7);
+  const ymEnd   = (p.end  ||"").slice(0,7);
+  if(!ymStart && !ymEnd) return true; // 日付なしは常に表示
+  if(!ymEnd) return ymStart <= ym;
+  if(!ymStart) return ym <= ymEnd;
+  return ymStart <= ym && ym <= ymEnd;
+}
+
 function renderProjects() {
   const isAdmin = CU.role==="Admin";
   const stats = ["全て","稼働中","商談中","契約済","終了"];
   let prjs = isAdmin ? projects : projects.filter(p=>shifts.some(s=>s.uid===CU.email&&s.projId===p.id));
+  // 月フィルター（「全て」ステータスのときは期間でも絞り込み）
+  prjs = prjs.filter(p=>inFilterMonthProj(p));
   if(projFilter!=="全て") prjs = prjs.filter(p=>p.status===projFilter);
   return `
   <div class="ph"><div class="deco"></div><div class="deco2"></div>
@@ -533,6 +575,7 @@ function renderProjects() {
   </div>
   ${isAdmin?`<button class="fab" id="proj-fab" onclick="projFabClick()">${ICO.plus}</button>`:""}
   <div class="cp" style="margin-top:10px">
+    ${projTabState!=="クライアント"?monthNav():""}
     ${isAdmin?`<div class="tt">
       <button class="${projTabState==="案件"?"on":""}" onclick="projTabState='案件';render()">案件</button>
       <button class="${projTabState==="クライアント"?"on":""}" onclick="projTabState='クライアント';render()">クライアント</button>
@@ -824,13 +867,15 @@ function saveDatesShift() {
 // ══ REPORTS ════════════════════════════════════════════════════
 function renderReports() {
   const isAdmin = CU.role==="Admin";
-  const myR = isAdmin ? reports : reports.filter(r=>r.uid===CU.email);
+  const allR = isAdmin ? reports : reports.filter(r=>r.uid===CU.email);
+  const myR = allR.filter(r=>inFilterMonth(r.date));
   return `
   <div class="ph"><div class="deco"></div><div class="deco2"></div>
     <div class="ph-row"><div><div class="ey">日報</div><h1 style="font-size:18px">${myR.length} 件</h1></div></div>
   </div>
   <button class="fab" onclick="openReportModal()">${ICO.plus}</button>
   <div class="cp" style="margin-top:10px">
+    ${monthNav()}
     ${myR.map(r=>{ const u=USERS.find(u=>u.email===r.uid); const p=projects.find(p=>p.id===r.projId); const st=STORES.find(s=>s.id===r.storeId); const c=gc(u?.color||"sky");
       return `<div class="card tap" data-id="${r.id}" onclick="openReportDetail(this.dataset.id)">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
@@ -967,19 +1012,31 @@ function saveReport(projId,storeId){
 // ══ EXPENSES ═══════════════════════════════════════════════════
 function renderExpenses(){
   const isAdmin=CU.role==="Admin";
-  const myE=isAdmin?expenses:expenses.filter(e=>e.uid===CU.email);
+  const allE=isAdmin?expenses:expenses.filter(e=>e.uid===CU.email);
+  const myE=allE.filter(e=>inFilterMonth(e.date));
+  // スタッフフィルター（Admin のみ）
+  const staffE = (isAdmin && expStaffFilter!=="全て")
+    ? myE.filter(e=>e.uid===expStaffFilter)
+    : myE;
   const filters=["全て","申請中","承認","差戻し","案件外"];
-  let filt=myE;
-  if(expFilter==="案件外") filt=myE.filter(e=>!e.projId);
-  else if(expFilter!=="全て") filt=myE.filter(e=>e.status===expFilter);
+  let filt=staffE;
+  if(expFilter==="案件外") filt=staffE.filter(e=>!e.projId);
+  else if(expFilter!=="全て") filt=staffE.filter(e=>e.status===expFilter);
   const total=filt.reduce((a,e)=>a+(+(e.amt||0)),0);
-  const pendCnt=myE.filter(e=>e.status==="申請中").length;
+  const pendCnt=staffE.filter(e=>e.status==="申請中").length;
   return `
   <div class="ph"><div class="deco"></div><div class="deco2"></div>
     <div class="ph-row"><div><div class="ey">経費</div><h1 style="font-size:18px">精算管理</h1></div></div>
   </div>
   <button class="fab" onclick="openExpModal()">${ICO.plus}</button>
   <div class="cp" style="margin-top:10px">
+    ${monthNav()}
+    ${isAdmin?`<div class="field" style="margin-bottom:12px">
+      <select onchange="expStaffFilter=this.value;render()" style="width:100%;border:1.5px solid var(--border);border-radius:12px;padding:10px 13px;font-size:13px;font-family:inherit;background:#fff;outline:none;color:var(--txt)">
+        <option value="全て">👥 全スタッフ</option>
+        ${USERS.filter(u=>u.role==="Employee").map(u=>`<option value="${u.email}"${expStaffFilter===u.email?" selected":""}>${u.name}</option>`).join("")}
+      </select>
+    </div>`:""}
     <div class="pills">${filters.map(f=>`<button class="pill${expFilter===f?" on":""}" data-f="${f}" onclick="expFilter=this.dataset.f;render()">${f}${f==="申請中"&&pendCnt>0?`<span style="margin-left:4px;background:#F59E0B;color:#fff;font-size:10px;border-radius:100px;padding:1px 5px">${pendCnt}</span>`:""}</button>`).join("")}</div>
     <div class="sum"><span style="font-size:12px;color:var(--sky-d);font-weight:600">${filt.length} 件</span><span style="font-size:15px;font-weight:800;color:var(--sky)">合計 ¥${fmt(total)}</span></div>
     ${filt.map(e=>{ const u=USERS.find(u=>u.email===e.uid); const p=projects.find(p=>p.id===e.projId); const c=gc(u?.color||"sky");
@@ -1018,9 +1075,15 @@ function openExpDetail(id){
       <div class="ir"><span class="k">金額</span><span class="v" style="font-size:18px;font-weight:900">¥${fmt(+(e.amt||0))}</span></div>
       <div class="ir"><span class="k">状態</span><span class="v">${statusBadge(e.status||"申請中")}</span></div>
     </div>
-    ${e.receiptPreview?`<div class="sl" style="margin-top:0">領収書</div>
-    <div class="rp" style="margin-bottom:12px"><img src="${e.receiptPreview}"/><div class="ro"><span style="color:rgba(255,255,255,.8);font-size:12px">Drive に保存済み ✓</span></div></div>`
-    :`<div style="background:#F8FDFE;border-radius:12px;padding:13px;text-align:center;font-size:13px;color:var(--muted);margin-bottom:12px">領収書なし</div>`}
+    <div class="sl" style="margin-top:0">領収書・請求書</div>
+    ${e.receiptURL
+      ? (e.receiptPreview
+          ? `<div class="rp" style="margin-bottom:12px"><img src="${e.receiptPreview}" style="width:100%;height:160px;object-fit:cover;display:block"/><div class="ro"><span style="color:rgba(255,255,255,.8);font-size:12px">Drive に保存済み ✓</span>${e.receiptURL?`<a href="${e.receiptURL}" target="_blank" rel="noopener" style="color:rgba(255,255,255,.8);font-size:12px;margin-left:10px;text-decoration:underline">開く →</a>`:""}</div></div>`
+          : `<a href="${e.receiptURL}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;background:#FEF3C7;border-radius:12px;padding:14px;margin-bottom:12px;text-decoration:none">
+               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:28px;height:28px;color:#F59E0B;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+               <div><div style="font-size:13px;font-weight:700;color:#92400E">PDFファイルを開く →</div><div style="font-size:11px;color:#B45309;margin-top:2px">Drive に保存済み ✓</div></div>
+             </a>`)
+      : `<div style="background:#F8FDFE;border-radius:12px;padding:13px;text-align:center;font-size:13px;color:var(--muted);margin-bottom:12px">添付なし</div>`}
     ${isAdmin&&(e.status==="申請中")?`<div style="display:flex;gap:10px">
       <button type="button" class="btn btn-g" style="flex:1;justify-content:center" data-id="${e.id}" onclick="approveExp(this.dataset.id)">${ICO.check} 承認</button>
       <button type="button" class="btn btn-r" style="flex:1;justify-content:center" data-id="${e.id}" onclick="rejectExp(this.dataset.id)">${ICO.x} 差戻し</button>
@@ -1064,10 +1127,17 @@ function openEditExp(id) {
     <div style="margin-bottom:12px">
       <label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:5px">領収書</label>
       <div id="ep-receipt-area">
-        ${e.receiptPreview
-          ? `<div class="rp"><img src="${e.receiptPreview}" style="width:100%;height:140px;object-fit:cover;display:block"/><div class="ro"><span style="color:rgba(255,255,255,.8);font-size:12px">添付済み ✓</span></div></div>`
-          : `<label class="ru" for="ep-file">${ICO.cam}<div style="font-size:13px;color:var(--sub);font-weight:600;margin-top:6px">カメラ撮影 / ギャラリーから選択</div></label>
-             <input type="file" id="ep-file" accept="image/*" capture="environment" style="display:none" onchange="epFile(this)">`}
+        ${expReceiptData
+          ? `<div id="ep-file-preview">${expReceiptData.type==='pdf'
+              ? `<div style="background:#FEF3C7;border-radius:12px;padding:14px;display:flex;align-items:center;gap:10px"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:28px;height:28px;color:#F59E0B;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg><div><div style="font-size:13px;font-weight:700;color:#92400E">${expReceiptData.name||'PDF'}</div><div style="font-size:11px;color:#B45309">Drive に保存予定 ✓</div></div><button type="button" onclick="expReceiptData=null;renderEditExpReceipt()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#CBD5E1;font-size:18px">✕</button></div>`
+              : `<div class="rp"><img src="${expReceiptData.preview}" style="width:100%;height:140px;object-fit:cover;display:block"/><div class="ro"><span style="color:rgba(255,255,255,.8);font-size:12px">添付済み ✓</span><button type="button" onclick="expReceiptData=null;renderEditExpReceipt()" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.7);font-size:12px;font-family:inherit">削除</button></div></div>`
+            }</div>`
+          : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+               <label class="ru" for="ep-file-img2" style="padding:14px 8px">${ICO.cam}<div style="font-size:12px;color:var(--sub);font-weight:600;margin-top:5px">写真・画像</div></label>
+               <label class="ru" for="ep-file-pdf2" style="padding:14px 8px"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:28px;height:28px;color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg><div style="font-size:12px;color:var(--sub);font-weight:600;margin-top:5px">PDFファイル</div></label>
+             </div>
+             <input type="file" id="ep-file-img2" accept="image/*" capture="environment" style="display:none" onchange="epFile(this,'image')">
+             <input type="file" id="ep-file-pdf2" accept="application/pdf" style="display:none" onchange="epFile(this,'pdf')">`}
       </div>
     </div>
     <button type="button" class="btn btn-p btn-f" data-id="${e.id}" onclick="saveEditExp(this.dataset.id)">再申請する</button>
@@ -1089,6 +1159,17 @@ function saveEditExp(id) {
   };
   expenses = expenses.map(e => e.id===id ? {...e,...updated} : e);
   gasPost("updateExpense", updated);
+
+  // ファイルがある場合はDriveにアップロード
+  if(expReceiptData?.data) {
+    gasPost("uploadReceipt", {
+      expenseId: id,
+      base64:    expReceiptData.data,
+      fileName:  expReceiptData.name || (id + (expReceiptData.type==='pdf' ? '.pdf' : '.jpg')),
+      mimeType:  expReceiptData.mimeType || 'image/jpeg',
+    });
+  }
+
   epIsOther=false; expReceiptData=null;
   closeModal(); render(); showToast("再申請しました");
 }
@@ -1109,10 +1190,22 @@ function openExpModal(){
     <div class="field"><label>金額 (円)</label><input type="number" id="ep-amt" min="0" placeholder="例: 1200"></div>
     <div class="field"><label>内容</label><input type="text" id="ep-note" placeholder="例: 交通費（渋谷往復）"></div>
     <div style="margin-bottom:12px">
-      <label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:5px">領収書 <span style="color:var(--muted);font-weight:400">→ 管理者の Google Drive に保存</span></label>
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:5px">領収書・請求書 <span style="color:var(--muted);font-weight:400">→ Google Drive に保存</span></label>
       <div id="ep-receipt-area">
-        <label class="ru" for="ep-file">${ICO.cam}<div style="font-size:13px;color:var(--sub);font-weight:600;margin-top:6px">カメラ撮影 / ギャラリーから選択</div><div style="font-size:11px;color:var(--muted);margin-top:3px">管理者の Google Drive に自動保存</div></label>
-        <input type="file" id="ep-file" accept="image/*" capture="environment" style="display:none" onchange="epFile(this)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <label class="ru" for="ep-file-img" style="padding:14px 8px">
+            ${ICO.cam}
+            <div style="font-size:12px;color:var(--sub);font-weight:600;margin-top:5px">写真・画像</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">JPG / PNG</div>
+          </label>
+          <label class="ru" for="ep-file-pdf" style="padding:14px 8px">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:28px;height:28px;color:var(--muted)"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+            <div style="font-size:12px;color:var(--sub);font-weight:600;margin-top:5px">PDFファイル</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">PDF</div>
+          </label>
+        </div>
+        <input type="file" id="ep-file-img" accept="image/*" capture="environment" style="display:none" onchange="epFile(this,'image')">
+        <input type="file" id="ep-file-pdf" accept="application/pdf" style="display:none" onchange="epFile(this,'pdf')">
       </div>
       <div id="ep-warn" class="alert alert-a" style="margin-top:8px;margin-bottom:0">${ICO.bell}<span style="font-size:12px">領収書の添付を推奨します（税理士提出用）</span></div>
     </div>
@@ -1120,14 +1213,59 @@ function openExpModal(){
   </div>`);
 }
 function epTog(isOther,btn){ epIsOther=isOther; document.querySelectorAll(".tog button").forEach(b=>b.classList.remove("on")); btn.classList.add("on"); const w=document.getElementById("ep-proj-wrap"); if(w) w.style.display=isOther?"none":""; }
-function epFile(input){ const f=input.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=e=>{ expReceiptData={preview:e.target.result,url:"https://drive.google.com/file/d/drive_"+Date.now()+"/view"}; const area=document.getElementById("ep-receipt-area"); if(area) area.innerHTML=`<div class="rp"><img src="${expReceiptData.preview}" style="width:100%;height:140px;object-fit:cover;display:block"/><div class="ro"><span style="color:rgba(255,255,255,.8);font-size:12px">Drive に保存済み ✓</span></div></div>`; const w=document.getElementById("ep-warn"); if(w) w.style.display="none"; }; r.readAsDataURL(f); }
+function epFile(input, fileType) {
+  const f = input.files?.[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    const isPDF = fileType==='pdf' || f.type==='application/pdf';
+    expReceiptData = {
+      preview: isPDF ? null : e.target.result,
+      data: e.target.result,  // base64 (画像・PDF両方)
+      url: "https://drive.google.com/file/d/drive_"+Date.now()+"/view",
+      type: isPDF ? 'pdf' : 'image',
+      name: f.name,
+      mimeType: f.type,
+    };
+    const area = document.getElementById("ep-receipt-area");
+    if(area) {
+      if(isPDF) {
+        area.innerHTML = `<div style="background:#FEF3C7;border-radius:12px;padding:14px;display:flex;align-items:center;gap:10px">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="width:32px;height:32px;color:#F59E0B;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:#92400E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.name}</div>
+            <div style="font-size:11px;color:#B45309;margin-top:2px">Drive に保存予定 ✓</div>
+          </div>
+          <button type="button" onclick="expReceiptData=null;document.getElementById('ep-receipt-area').innerHTML='<div style=\'text-align:center;padding:12px;color:var(--muted);font-size:12px\'>削除しました。再選択してください。</div>'" style="background:none;border:none;cursor:pointer;color:#CBD5E1;font-size:20px">✕</button>
+        </div>`;
+      } else {
+        area.innerHTML = `<div class="rp"><img src="${expReceiptData.preview}" style="width:100%;height:140px;object-fit:cover;display:block"/><div class="ro"><span style="color:rgba(255,255,255,.8);font-size:12px">Drive に保存予定 ✓</span><button type="button" onclick="expReceiptData=null;document.getElementById('ep-receipt-area').innerHTML='<div style=\'text-align:center;padding:12px;color:var(--muted);font-size:12px\'>削除しました。</div>'" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.7);font-size:12px;font-family:inherit">削除</button></div></div>`;
+      }
+    }
+    const w = document.getElementById("ep-warn");
+    if(w) w.style.display = "none";
+  };
+  r.readAsDataURL(f);
+}
 function saveExp(){
   const projId=epIsOther?null:(document.getElementById("ep-proj")?.value||null);
   const cat=document.getElementById("ep-cat")?.value; const amt=document.getElementById("ep-amt")?.value; const note=document.getElementById("ep-note")?.value;
   if((!epIsOther&&!projId)||!cat||!amt||!note){showToast("必須項目を入力してください");return;}
   const uid=document.getElementById("ep-staff")?.value||CU.email;
-  const ne={id:"E"+Date.now(),uid,date:document.getElementById("ep-date")?.value||today(),projId:projId||null,cat,amt:+amt,note,status:"申請中",receiptURL:expReceiptData?.url||null,receiptPreview:expReceiptData?.preview||null};
-  expenses=[ne,...expenses]; gasPost("addExpense",ne);
+  const ne={id:"E"+Date.now(),uid,date:document.getElementById("ep-date")?.value||today(),projId:projId||null,cat,amt:+amt,note,status:"申請中",receiptURL:expReceiptData?.url||null,receiptPreview:expReceiptData?.preview||null,receiptData:expReceiptData?.data||null,receiptMime:expReceiptData?.mimeType||null,receiptName:expReceiptData?.name||null};
+  expenses=[ne,...expenses];
+  gasPost("addExpense", ne);
+
+  // ファイルがある場合はDriveにアップロード
+  if(expReceiptData?.data) {
+    gasPost("uploadReceipt", {
+      expenseId: ne.id,
+      base64:    expReceiptData.data,
+      fileName:  expReceiptData.name || (ne.id + (expReceiptData.type==='pdf' ? '.pdf' : '.jpg')),
+      mimeType:  expReceiptData.mimeType || 'image/jpeg',
+    });
+  }
+
   epIsOther=false; expReceiptData=null;
   closeModal(); render(); showToast("経費を申請しました");
 }
