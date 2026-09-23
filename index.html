@@ -1158,16 +1158,22 @@ function saveEditExp(id) {
     receiptPreview: expReceiptData?.preview || null,
   };
   expenses = expenses.map(e => e.id===id ? {...e,...updated} : e);
-  gasPost("updateExpense", updated);
 
-  // ファイルがある場合はDriveにアップロード
   if(expReceiptData?.data) {
-    gasPost("uploadReceipt", {
-      expenseId: id,
-      base64:    expReceiptData.data,
-      fileName:  expReceiptData.name || (id + (expReceiptData.type==='pdf' ? '.pdf' : '.jpg')),
-      mimeType:  expReceiptData.mimeType || 'image/jpeg',
+    // ファイルあり: 一括アクションで経費更新＋Drive保存
+    const fname = expReceiptData.name || (id + (expReceiptData.type==='pdf'?'.pdf':'.jpg'));
+    gasPost("updateExpenseWithFile", {
+      expense:  updated,
+      base64:   expReceiptData.data,
+      fileName: fname,
+      mimeType: expReceiptData.mimeType || 'image/jpeg',
+    }).then(r=>{
+      if(r?.url) {
+        expenses = expenses.map(e=>e.id===id ? {...e, receiptURL:r.url} : e);
+      }
     });
+  } else {
+    gasPost("updateExpense", updated);
   }
 
   epIsOther=false; expReceiptData=null;
@@ -1249,21 +1255,37 @@ function epFile(input, fileType) {
 }
 function saveExp(){
   const projId=epIsOther?null:(document.getElementById("ep-proj")?.value||null);
-  const cat=document.getElementById("ep-cat")?.value; const amt=document.getElementById("ep-amt")?.value; const note=document.getElementById("ep-note")?.value;
+  const cat=document.getElementById("ep-cat")?.value;
+  const amt=document.getElementById("ep-amt")?.value;
+  const note=document.getElementById("ep-note")?.value;
   if((!epIsOther&&!projId)||!cat||!amt||!note){showToast("必須項目を入力してください");return;}
   const uid=document.getElementById("ep-staff")?.value||CU.email;
-  const ne={id:"E"+Date.now(),uid,date:document.getElementById("ep-date")?.value||today(),projId:projId||null,cat,amt:+amt,note,status:"申請中",receiptURL:expReceiptData?.url||null,receiptPreview:expReceiptData?.preview||null,receiptData:expReceiptData?.data||null,receiptMime:expReceiptData?.mimeType||null,receiptName:expReceiptData?.name||null};
+  const ne={
+    id:"E"+Date.now(), uid,
+    date:document.getElementById("ep-date")?.value||today(),
+    projId:projId||null, cat, amt:+amt, note, status:"申請中",
+    receiptURL:null,
+    receiptPreview:expReceiptData?.preview||null,
+  };
   expenses=[ne,...expenses];
-  gasPost("addExpense", ne);
 
-  // ファイルがある場合はDriveにアップロード
   if(expReceiptData?.data) {
-    gasPost("uploadReceipt", {
-      expenseId: ne.id,
-      base64:    expReceiptData.data,
-      fileName:  expReceiptData.name || (ne.id + (expReceiptData.type==='pdf' ? '.pdf' : '.jpg')),
-      mimeType:  expReceiptData.mimeType || 'image/jpeg',
+    // ファイルあり: 一括アクションで経費追加＋Drive保存
+    const fname = expReceiptData.name || (ne.id + (expReceiptData.type==='pdf'?'.pdf':'.jpg'));
+    gasPost("addExpenseWithFile", {
+      expense:  ne,
+      base64:   expReceiptData.data,
+      fileName: fname,
+      mimeType: expReceiptData.mimeType || 'image/jpeg',
+    }).then(r=>{
+      // Drive保存完了後にローカルのreceiptURLも更新
+      if(r?.url) {
+        expenses = expenses.map(e=>e.id===ne.id ? {...e, receiptURL:r.url} : e);
+      }
     });
+  } else {
+    // ファイルなし: 通常の経費追加
+    gasPost("addExpense", ne);
   }
 
   epIsOther=false; expReceiptData=null;
@@ -1351,8 +1373,22 @@ function saveProject(existingId){
   const proj={id:projId,name,clientId,start:document.getElementById("pj-start")?.value||"",end:document.getElementById("pj-end")?.value||"",price:+(document.getElementById("pj-price")?.value)||0,status:document.getElementById("pj-status")?.value||"商談中",assignedUsers:tempUsers.join(",")};
   if(existingId){ projects=projects.map(p=>p.id===existingId?proj:p); if(DETAIL_PROJ?.id===existingId) DETAIL_PROJ=proj; gasPost("updateProject",proj); }
   else { projects=[...projects,proj]; gasPost("addProject",proj); }
-  const ns=tempStores.map(s=>({...s,projId}));
-  ns.forEach(s=>{STORES=[...STORES,s];gasPost("addStore",s);});
+  if(existingId) {
+    // 編集時: 既存店舗のIDと比較して新規追加分だけ保存
+    const existingStoreIds = new Set(STORES.filter(s=>s.projId===existingId).map(s=>s.id));
+    const newStores = tempStores.filter(s=>!existingStoreIds.has(s.id)).map(s=>({...s,projId}));
+    // 削除された店舗をSTORESから除去してGASにも反映
+    const keptIds = new Set(tempStores.map(s=>s.id));
+    const deletedStores = STORES.filter(s=>s.projId===existingId && !keptIds.has(s.id));
+    deletedStores.forEach(s=>gasPost("deleteStore",{id:s.id}));
+    STORES = STORES.filter(s=>s.projId!==existingId || keptIds.has(s.id));
+    // 新規店舗を追加
+    newStores.forEach(s=>{ STORES=[...STORES,s]; gasPost("addStore",s); });
+  } else {
+    // 新規案件: tempStores全部追加
+    const ns = tempStores.map(s=>({...s,projId}));
+    ns.forEach(s=>{ STORES=[...STORES,s]; gasPost("addStore",s); });
+  }
   tempStores=[]; tempUsers=[];
   closeModal(); render(); showToast(existingId?"案件を更新しました":"案件を追加しました");
 }
