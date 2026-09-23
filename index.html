@@ -1307,7 +1307,13 @@ function saveExp(){
   expenses=[ne,...expenses];
 
   if(expReceiptData?.data) {
-    // ファイルあり: 一括アクションで経費追加＋Drive保存
+    // ファイルサイズをチェック（base64は元サイズの約1.37倍）
+    const sizeMB = (expReceiptData.data.length * 0.75) / (1024*1024);
+    console.info("添付ファイルサイズ:", sizeMB.toFixed(2), "MB");
+    if(sizeMB > 8) {
+      showToast("⚠️ ファイルが大きすぎます(" + sizeMB.toFixed(1) + "MB)。経費は保存されましたが添付は失敗する可能性があります");
+    }
+
     const fname = expReceiptData.name || (ne.id + (expReceiptData.type==='pdf'?'.pdf':'.jpg'));
     gasPost("addExpenseWithFile", {
       expense:  ne,
@@ -1315,13 +1321,22 @@ function saveExp(){
       fileName: fname,
       mimeType: expReceiptData.mimeType || 'image/jpeg',
     }).then(r=>{
-      // Drive保存完了後にローカルのreceiptURLも更新
-      if(r?.url) {
+      console.info("addExpenseWithFile response:", r);
+      if(r?.error) {
+        showToast("⚠️ 保存エラー: " + r.error);
+      } else if(r?.uploadError) {
+        showToast("⚠️ Drive保存失敗: " + r.uploadError);
+      } else if(r?.url) {
         expenses = expenses.map(e=>e.id===ne.id ? {...e, receiptURL:r.url} : e);
+        render();
+      } else {
+        showToast("⚠️ Driveへの保存結果が不明です");
       }
+    }).catch(e=>{
+      console.warn("addExpenseWithFile fetch error:", e);
+      showToast("⚠️ 通信エラー: 添付ファイルが保存されなかった可能性があります");
     });
   } else {
-    // ファイルなし: 通常の経費追加
     gasPost("addExpense", ne);
   }
 
