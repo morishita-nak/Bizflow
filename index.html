@@ -316,10 +316,17 @@ let projTabState = "案件";
 let projFilter = "全て";
 let expFilter = "全て";
 let expStaffFilter = "全て"; // 経費スタッフフィルター
+let repFilter = "全て"; // 使用なら将来拡張用
+let repStaffFilter = "全て"; // 日報スタッフフィルター
 
 // 月フィルター（共通）
 let filterYear  = new Date().getFullYear();
 let filterMonth = new Date().getMonth() + 1; // 1-12
+
+// ダッシュボード専用の月（他タブの月送りと独立させ、タブを開くたびに今月にリセットする）
+let dashYear  = new Date().getFullYear();
+let dashMonth = new Date().getMonth() + 1;
+let dashSelUid = null; // ダッシュボードでクリックしたスタッフ（詳細表示用）
 
 // ══ TOAST ══════════════════════════════════════════════════════
 let toastTimer = null;
@@ -448,7 +455,15 @@ function render() {
 }
 
 function goTab(id) {
-  DETAIL_PROJ=null; TAB=id; render();
+  DETAIL_PROJ=null; TAB=id;
+  if(id==="dashboard") {
+    // ダッシュボードを開くたびに「今月」に戻す（他タブの月送りに引っ張られて
+    // 古い月のまま固定表示されてしまう不具合の修正）
+    dashYear  = new Date().getFullYear();
+    dashMonth = new Date().getMonth() + 1;
+    dashSelUid = null;
+  }
+  render();
   if(id==="expenses") refreshExpenses();
   if(id==="reports")  refreshReports();
 }
@@ -500,27 +515,48 @@ function inFilterMonth(dateStr) {
   return s === filterYear + "-" + String(filterMonth).padStart(2,"0");
 }
 
+// ダッシュボード専用の月送り（他タブの filterYear/filterMonth とは独立）
+function dashMonthNav() {
+  return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <button onclick="changeDashMonth(-1)" style="background:var(--sky-l);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sky);font-family:inherit">◀</button>
+    <div style="flex:1;text-align:center;font-size:15px;font-weight:800;color:var(--txt)">${dashYear}年 ${dashMonth}月</div>
+    <button onclick="changeDashMonth(1)" style="background:var(--sky-l);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sky);font-family:inherit">▶</button>
+  </div>`;
+}
+function changeDashMonth(delta) {
+  dashMonth += delta;
+  if(dashMonth > 12) { dashMonth = 1; dashYear++; }
+  if(dashMonth < 1)  { dashMonth = 12; dashYear--; }
+  render();
+}
+function inDashMonth(dateStr) {
+  if(!dateStr) return false;
+  const s = String(dateStr).slice(0,7);
+  return s === dashYear + "-" + String(dashMonth).padStart(2,"0");
+}
+
 // ══ DASHBOARD ══════════════════════════════════════════════════
 function renderDash() {
   const td = today();
   const active = projects.filter(p=>p.status==="稼働中").length;
   const todayS = shifts.filter(s=>s.date===td&&s.type==="勤務").length;
   const pending = expenses.filter(e=>e.status==="申請中").length;
-  // 月フィルター適用
-  const mReps = reports.filter(r=>inFilterMonth(r.date));
+  // ダッシュボード専用の月フィルター（他タブとは独立。goTabで毎回「今月」にリセットされる）
+  const mReps = reports.filter(r=>inDashMonth(r.date));
   const totalNew  = mReps.reduce((a,r)=>a+(+r.new_||0),0);
   const totalMNP  = mReps.reduce((a,r)=>a+(+r.mnp||0),0);
   const totalBB   = mReps.reduce((a,r)=>a+(+r.bb||0),0);
   const totalEl   = mReps.reduce((a,r)=>a+(+r.elec||0),0);
   const totalCard = mReps.reduce((a,r)=>a+(+r.card||0),0);
   const totalUC   = mReps.reduce((a,r)=>a+(+r.uc||0),0);
-  const emps = USERS.filter(u=>u.role==="Employee");
+  // スタッフ一覧：Employee だけでなく Admin 自身の実績も表示対象にする
+  const emps = USERS.filter(u=>u.role==="Employee").concat(USERS.filter(u=>u.role==="Admin"));
   return `
   <div class="ph"><div class="deco"></div><div class="deco2"></div>
     <div class="ph-row"><div><div class="ey">管理者ダッシュボード</div><h1>${CU.name} さん</h1><div class="sb">${td}</div></div></div>
   </div>
   <div class="cp" style="margin-top:10px">
-    ${monthNav()}
+    ${dashMonthNav()}
     ${pending>0?`<div class="alert alert-a">${ICO.bell}<span>経費承認待ちが <strong>${pending}</strong> 件あります</span></div>`:""}
     <div class="sg">
       <div class="sc"><div class="l">稼働案件</div><div class="v" style="color:var(--sky)">${active}</div><div class="u">件</div></div>
@@ -532,13 +568,40 @@ function renderDash() {
       <div class="sc"><div class="l">今月 カード</div><div class="v" style="color:#EC4899">${totalCard}</div><div class="u">件</div></div>
       <div class="sc"><div class="l">上位キャリア</div><div class="v" style="color:#8B5CF6">${totalUC}</div><div class="u">件</div></div>
     </div>
-    <div class="sl">スタッフ別 今月実績</div>
+    <div class="sl">スタッフ別 今月実績 <span style="font-size:10px;font-weight:400;color:var(--muted)">（タップで詳細）</span></div>
     ${emps.map(u=>{
       const c=gc(u.color); const rs=mReps.filter(r=>r.uid===u.email);
       const tot=rs.reduce((a,r)=>a+(+r.new_||0)+(+r.mnp||0),0);
-      return `<div class="card" style="display:flex;align-items:center;gap:12px">${av(u)}<div style="flex:1"><div style="font-size:14px;font-weight:700">${u.name}</div><div style="font-size:12px;color:var(--sub)">新規+MNP: ${tot} 件</div></div><div style="font-size:22px;font-weight:900;color:${c.bg}">${tot}</div></div>`;
+      return `<div class="card tap" style="display:flex;align-items:center;gap:12px" data-uid="${u.email}" onclick="openDashStaffDetail(this.dataset.uid)">${av(u)}<div style="flex:1"><div style="font-size:14px;font-weight:700">${u.name}${u.role==="Admin"?`<span style="font-size:10px;font-weight:600;color:var(--muted);margin-left:5px">管理者</span>`:""}</div><div style="font-size:12px;color:var(--sub)">新規+MNP: ${tot} 件</div></div><div style="font-size:22px;font-weight:900;color:${c.bg}">${tot}</div></div>`;
     }).join("")}
   </div>`;
+}
+
+function openDashStaffDetail(uid) {
+  dashSelUid = uid;
+  const u = USERS.find(u=>u.email===uid); if(!u) return;
+  const c = gc(u.color);
+  const rs = reports.filter(r=>r.uid===uid && inDashMonth(r.date));
+  const es = expenses.filter(e=>e.uid===uid && inDashMonth(e.date));
+  const sh = shifts.filter(s=>s.uid===uid && inDashMonth(s.date) && s.type==="勤務");
+  const sum = (k)=>rs.reduce((a,r)=>a+(+r[k]||0),0);
+  const accTotal = sum("acc");
+  const expApproved = es.filter(e=>e.status==="承認").reduce((a,e)=>a+(+e.amt||0),0);
+  const expPending  = es.filter(e=>e.status==="申請中").length;
+  openModal(`<div class="sh-head"><h2>${u.name} さんの実績</h2><button class="sh-close" onclick="closeModal()">${ICO.x}</button></div>
+  <div class="sh-body">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">${av(u)}<div><div style="font-size:14px;font-weight:800">${u.name}${u.role==="Admin"?" （管理者）":""}</div><div style="font-size:12px;color:var(--sub)">${dashYear}年 ${dashMonth}月</div></div></div>
+    <div class="pg">
+      ${[["新規",sum("new_"),"var(--em)"],["MNP",sum("mnp"),"var(--sky)"],["BB",sum("bb"),"#F97316"],["でんき",sum("elec"),"#F59E0B"],["カード",sum("card"),"#EC4899"],["上位",sum("uc"),"#8B5CF6"]].map(([l,v,col])=>`<div class="pc"><div class="pl">${l}</div><div class="pv" style="color:${col}">${v}</div><div class="pu">件</div></div>`).join("")}
+    </div>
+    <div style="background:#F8FDFE;border-radius:12px;padding:11px 13px;display:flex;justify-content:space-between;margin-bottom:10px"><span style="font-size:12px;color:var(--sub)">アクセサリー売上</span><span style="font-size:15px;font-weight:800">¥${fmt(accTotal)}</span></div>
+    <div class="sg" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="sc"><div class="l">日報</div><div class="v" style="color:${c.bg}">${rs.length}</div><div class="u">件</div></div>
+      <div class="sc"><div class="l">稼働日数</div><div class="v" style="color:var(--teal)">${sh.length}</div><div class="u">日</div></div>
+      <div class="sc"><div class="l">経費承認待ち</div><div class="v" style="color:#F59E0B">${expPending}</div><div class="u">件</div></div>
+    </div>
+    <div style="background:#F8FDFE;border-radius:12px;padding:11px 13px;display:flex;justify-content:space-between;margin-top:10px"><span style="font-size:12px;color:var(--sub)">経費（承認済み合計）</span><span style="font-size:15px;font-weight:800">¥${fmt(expApproved)}</span></div>
+  </div>`);
 }
 
 // ══ HOME ═══════════════════════════════════════════════════════
@@ -898,7 +961,11 @@ function saveDatesShift() {
 function renderReports() {
   const isAdmin = CU.role==="Admin";
   const allR = isAdmin ? reports : reports.filter(r=>r.uid===CU.email);
-  const myR = allR.filter(r=>inFilterMonth(r.date));
+  const monthR = allR.filter(r=>inFilterMonth(r.date));
+  // スタッフフィルター（Admin のみ。Employee だけでなく Admin 自身も選べる）
+  const myR = (isAdmin && repStaffFilter!=="全て")
+    ? monthR.filter(r=>r.uid===repStaffFilter)
+    : monthR;
   return `
   <div class="ph"><div class="deco"></div><div class="deco2"></div>
     <div class="ph-row"><div><div class="ey">日報</div><h1 style="font-size:18px">${myR.length} 件</h1></div></div>
@@ -906,6 +973,12 @@ function renderReports() {
   <button class="fab" onclick="openReportModal()">${ICO.plus}</button>
   <div class="cp" style="margin-top:10px">
     ${monthNav()}
+    ${isAdmin?`<div class="field" style="margin-bottom:12px">
+      <select onchange="repStaffFilter=this.value;render()" style="width:100%;border:1.5px solid var(--border);border-radius:12px;padding:10px 13px;font-size:13px;font-family:inherit;background:#fff;outline:none;color:var(--txt)">
+        <option value="全て">👥 全スタッフ</option>
+        ${USERS.filter(u=>u.role==="Employee").concat(USERS.filter(u=>u.role==="Admin")).map(u=>`<option value="${u.email}"${repStaffFilter===u.email?" selected":""}>${u.name}${u.role==="Admin"?"（管理者）":""}</option>`).join("")}
+      </select>
+    </div>`:""}
     ${myR.map(r=>{ const u=USERS.find(u=>u.email===r.uid); const p=projects.find(p=>p.id===r.projId); const st=STORES.find(s=>s.id===r.storeId); const c=gc(u?.color||"sky");
       return `<div class="card tap" data-id="${r.id}" onclick="openReportDetail(this.dataset.id)">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
@@ -1470,6 +1543,7 @@ function openAddProject(){
     <div class="field"><label>ステータス</label><select id="pj-status"><option value="商談中">商談中</option><option value="契約済">契約済</option><option value="稼働中">稼働中</option><option value="終了">終了</option></select></div>
     <div class="sl" style="margin-top:4px">店舗（任意）</div>
     <div id="pj-stores"></div>
+    ${existingStoreOptions()}
     <div class="store-input-wrap">
       <div class="store-row"><input type="text" id="pj-sname" placeholder="店舗名 *"><button type="button" onclick="addTmpStore(null)">追加</button></div>
       <input type="text" id="pj-saddr" placeholder="住所（任意）" class="store-addr">
@@ -1496,6 +1570,7 @@ function openEditProject(id){
     <div class="field"><label>ステータス</label><select id="pj-status">${["商談中","契約済","稼働中","終了"].map(s=>`<option value="${s}"${s===p.status?" selected":""}>${s}</option>`).join("")}</select></div>
     <div class="sl" style="margin-top:4px">店舗（任意）</div>
     <div id="pj-stores"></div>
+    ${existingStoreOptions()}
     <div class="store-input-wrap">
       <div class="store-row"><input type="text" id="pj-sname" placeholder="店舗名 *"><button type="button" data-pid="${id}" onclick="addTmpStore(this.dataset.pid)">追加</button></div>
       <input type="text" id="pj-saddr" placeholder="住所（任意）" class="store-addr">
@@ -1505,6 +1580,32 @@ function openEditProject(id){
     <button type="button" class="btn btn-p btn-f" data-id="${id}" onclick="saveProject(this.dataset.id)">保存する</button>
   </div>`);
   renderTmpStores();
+}
+// 既存の店舗（スプレッドシートに既に入っている全店舗）から名前で選べるドロップダウン
+// 店舗名で重複を除き、同名の最初の住所を代表値として使う
+function uniqueExistingStores(){
+  const seen = new Set(); const out = [];
+  STORES.forEach(s=>{ if(!s.name || seen.has(s.name)) return; seen.add(s.name); out.push(s); });
+  return out.sort((a,b)=>a.name.localeCompare(b.name,"ja"));
+}
+function existingStoreOptions(){
+  const list = uniqueExistingStores();
+  if(!list.length) return "";
+  return `<div class="field" style="margin-bottom:8px">
+    <label style="font-size:11px;font-weight:700;color:var(--sub)">既存の店舗から選ぶ</label>
+    <select id="pj-store-pick" onchange="pickExistingStore(this)">
+      <option value="">選択してください</option>
+      ${list.map(s=>`<option value="${s.name}" data-addr="${(s.addr||"").replace(/"/g,"&quot;")}">${s.name}</option>`).join("")}
+    </select>
+  </div>`;
+}
+function pickExistingStore(sel){
+  const name = sel.value; if(!name) return;
+  if(tempStores.some(s=>s.name===name)){ showToast("すでに追加されています"); sel.value=""; return; }
+  const addr = sel.options[sel.selectedIndex]?.dataset.addr || "";
+  tempStores.push({id:"S"+Date.now()+"_"+Math.random().toString(36).slice(2,4),name,addr,projId:""});
+  renderTmpStores();
+  sel.value = "";
 }
 function addTmpStore(pid){ const n=document.getElementById("pj-sname")?.value?.trim(); if(!n){showToast("店舗名を入力してください");return;} tempStores.push({id:"S"+Date.now()+"_"+Math.random().toString(36).slice(2,4),name:n,addr:document.getElementById("pj-saddr")?.value?.trim()||"",projId:pid||""}); renderTmpStores(); const ne=document.getElementById("pj-sname"); if(ne) ne.value=""; const ae=document.getElementById("pj-saddr"); if(ae) ae.value=""; }
 function removeTmpStore(i){ tempStores.splice(i,1); renderTmpStores(); }
