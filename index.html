@@ -430,6 +430,7 @@ function render() {
   const empTabs = [
     {id:"home",     label:"ホーム",  icon:ICO.home},
     {id:"projects", label:"案件",    icon:ICO.brief},
+    {id:"shifts",   label:"シフト",  icon:ICO.cal},
     {id:"reports",  label:"日報",    icon:ICO.doc},
     {id:"expenses", label:"経費",    icon:ICO.rcpt},
   ];
@@ -757,13 +758,14 @@ function changeStatus(pid, status) {
 
 // ══ SHIFTS ═════════════════════════════════════════════════════
 function renderShifts() {
+  const isAdmin = CU.role==="Admin";
   const dim = new Date(calY,calM+1,0).getDate();
   const fd = new Date(calY,calM,1).getDay();
   const cells = [...Array(fd).fill(null), ...Array.from({length:dim},(_,i)=>i+1)];
   const td = today();
   const emps = USERS.filter(u=>u.role==="Employee").concat(USERS.filter(u=>u.role==="Admin"));
 
-  const regBanner = calRegMode ? `
+  const regBanner = (isAdmin && calRegMode) ? `
   <div style="padding:0 14px;margin-bottom:8px">
     <div style="background:var(--sky);border-radius:13px;padding:11px 14px;color:#fff;display:flex;align-items:center;justify-content:space-between">
       <div><div style="font-size:11px;font-weight:700;opacity:.8;margin-bottom:1px">📅 日付を選択中</div>
@@ -782,9 +784,9 @@ function renderShifts() {
       
     </div>
   </div>
-  <button class="fab" onclick="startReg()">${ICO.plus}</button>
+  ${isAdmin?`<button class="fab" onclick="startReg()">${ICO.plus}</button>`:""}
   ${regBanner}
-  <div class="cp" style="margin-top:${calRegMode?0:10}px">
+  <div class="cp" style="margin-top:${(isAdmin&&calRegMode)?0:10}px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <button onclick="calPrev()" style="background:var(--sky-l);border:none;border-radius:9px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sky)">${ICO.back}</button>
       <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px">
@@ -818,6 +820,7 @@ function renderShifts() {
 }
 
 function renderDayDetail() {
+  const isAdmin = CU.role==="Admin";
   const ds = ymd(calY,calM,calSelD);
   const dayS = shifts.filter(s=>s.date===ds);
   return `<div style="margin-top:12px">
@@ -831,7 +834,7 @@ function renderDayDetail() {
         </div>
         ${!isHol&&p?`<div style="font-size:12px;color:var(--sub)">${p.name}</div><div style="font-size:11px;color:var(--muted)">${st?.name||""} ${cl_of(p)}</div>`:""}
         </div>
-        <button data-id="${s.id}" onclick="deleteShift(this.dataset.id)" style="background:none;border:none;cursor:pointer;color:#CBD5E1;padding:4px">${ICO.x}</button>
+        ${isAdmin?`<button data-id="${s.id}" onclick="deleteShift(this.dataset.id)" style="background:none;border:none;cursor:pointer;color:#CBD5E1;padding:4px">${ICO.x}</button>`:""}
       </div>`;
     }).join("")}
   </div>`;
