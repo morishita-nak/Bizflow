@@ -1064,7 +1064,7 @@ function renderExpenses(){
     ${isAdmin?`<div class="field" style="margin-bottom:12px">
       <select onchange="expStaffFilter=this.value;render()" style="width:100%;border:1.5px solid var(--border);border-radius:12px;padding:10px 13px;font-size:13px;font-family:inherit;background:#fff;outline:none;color:var(--txt)">
         <option value="全て">👥 全スタッフ</option>
-        ${USERS.filter(u=>u.role==="Employee").map(u=>`<option value="${u.email}"${expStaffFilter===u.email?" selected":""}>${u.name}</option>`).join("")}
+        ${USERS.filter(u=>u.role==="Employee").concat(USERS.filter(u=>u.role==="Admin")).map(u=>`<option value="${u.email}"${expStaffFilter===u.email?" selected":""}>${u.name}${u.role==="Admin"?"（管理者）":""}</option>`).join("")}
       </select>
     </div>`:""}
     <div class="pills">${filters.map(f=>`<button class="pill${expFilter===f?" on":""}" data-f="${f}" onclick="expFilter=this.dataset.f;render()">${f}${f==="申請中"&&pendCnt>0?`<span style="margin-left:4px;background:#F59E0B;color:#fff;font-size:10px;border-radius:100px;padding:1px 5px">${pendCnt}</span>`:""}</button>`).join("")}</div>
